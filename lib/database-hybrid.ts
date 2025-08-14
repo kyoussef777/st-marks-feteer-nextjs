@@ -2,7 +2,6 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
-import { getEasternTime } from './timezone-utils';
 
 // Import Neon types and functions
 import { 
