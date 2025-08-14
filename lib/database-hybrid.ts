@@ -50,7 +50,7 @@ function checkNeonAvailability(): boolean {
   const dbUrl = process.env.DATABASE_URL;
   return !!(dbUrl && 
            dbUrl !== "postgresql://username:password@hostname/dbname?sslmode=require" &&
-           dbUrl.startsWith('postgresql://'));
+           (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')));
 }
 
 export function getDatabase() {
