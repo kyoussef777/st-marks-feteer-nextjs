@@ -35,6 +35,7 @@ interface ExtraTopping {
 
 export default function MenuEditor() {
   const [feteerTypes, setFeteerTypes] = useState<MenuItem[]>([]);
+  const [sweetTypes, setSweetTypes] = useState<MenuItem[]>([]);
   const [meatTypes, setMeatTypes] = useState<MeatType[]>([]);
   const [cheeseTypes, setCheeseTypes] = useState<CheeseType[]>([]);
   const [extraToppings, setExtraToppings] = useState<ExtraTopping[]>([]);
@@ -51,6 +52,7 @@ export default function MenuEditor() {
       if (response.ok) {
         const data = await response.json();
         setFeteerTypes(data.feteerTypes || []);
+        setSweetTypes(data.sweetTypes || []);
         setMeatTypes(data.meatTypes || []);
         setCheeseTypes(data.cheeseTypes || []);
         setExtraToppings(data.extraToppings || []);
@@ -64,6 +66,7 @@ export default function MenuEditor() {
 
   const tabs = [
     { id: 'feteer', name: 'Feteer Types', nameAr: 'أنواع الفطير', icon: '🥞' },
+    { id: 'sweets', name: 'Sweet Types', nameAr: 'أنواع الحلويات', icon: '🍰' },
     { id: 'meats', name: 'Meat Types', nameAr: 'أنواع اللحوم', icon: '🥩' },
     { id: 'toppings', name: 'Extra Toppings', nameAr: 'الإضافات', icon: '🍯' }
   ];
@@ -115,6 +118,9 @@ export default function MenuEditor() {
       <div className="card-enhanced rounded-xl p-6">
         {activeTab === 'feteer' && (
           <FeteerTypesEditor items={feteerTypes} onUpdate={fetchMenuData} />
+        )}
+        {activeTab === 'sweets' && (
+          <SweetTypesEditor items={sweetTypes} onUpdate={fetchMenuData} />
         )}
         {activeTab === 'meats' && (
           <MeatTypesEditor items={meatTypes} onUpdate={fetchMenuData} />
@@ -190,7 +196,13 @@ function FeteerTypesEditor({ items, onUpdate }: { items: MenuItem[], onUpdate: (
           onClick={() => setShowAddForm(!showAddForm)}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
         >
-          ➕ Add New Item
+          <div className="flex items-center gap-2">
+            <span>➕</span>
+            <div className="text-left">
+              <div className="text-sm">Add New Item</div>
+              <div className="font-arabic text-xs">إضافة صنف جديد</div>
+            </div>
+          </div>
         </button>
       </div>
 
@@ -226,13 +238,19 @@ function FeteerTypesEditor({ items, onUpdate }: { items: MenuItem[], onUpdate: (
               onClick={handleAdd}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
-              Save
+              <div className="text-center">
+                <div className="text-sm">Save</div>
+                <div className="font-arabic text-xs">حفظ</div>
+              </div>
             </button>
             <button
               onClick={() => setShowAddForm(false)}
               className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
             >
-              Cancel
+              <div className="text-center">
+                <div className="text-sm">Cancel</div>
+                <div className="font-arabic text-xs">إلغاء</div>
+              </div>
             </button>
           </div>
         </div>
@@ -267,13 +285,207 @@ function FeteerTypesEditor({ items, onUpdate }: { items: MenuItem[], onUpdate: (
                     onClick={() => handleEdit(item)}
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                   >
-                    ✏️ Edit
+                    <div className="flex items-center gap-1">
+                      <span>✏️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Edit</div>
+                        <div className="font-arabic text-xs">تحرير</div>
+                      </div>
+                    </div>
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                   >
-                    🗑️ Delete
+                    <div className="flex items-center gap-1">
+                      <span>🗑️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Delete</div>
+                        <div className="font-arabic text-xs">حذف</div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SweetTypesEditor({ items, onUpdate }: { items: MenuItem[], onUpdate: () => void }) {
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [newItem, setNewItem] = useState({ item_name: '', item_name_arabic: '', price: 0 });
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const handleEdit = (item: MenuItem) => {
+    setEditingId(item.id);
+  };
+
+  const handleSave = async (item: MenuItem) => {
+    try {
+      const response = await fetch(`/api/menu/sweets/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (response.ok) {
+        setEditingId(null);
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating item:', error);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm('Are you sure you want to delete this sweet?')) {
+      try {
+        const response = await fetch(`/api/menu/sweets/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+          onUpdate();
+        }
+      } catch (error) {
+        console.error('Error deleting item:', error);
+      }
+    }
+  };
+
+  const handleAdd = async () => {
+    try {
+      const response = await fetch('/api/menu/sweets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newItem, item_type: 'sweet_type' })
+      });
+      if (response.ok) {
+        setNewItem({ item_name: '', item_name_arabic: '', price: 0 });
+        setShowAddForm(false);
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error adding item:', error);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Sweet Types / أنواع الحلويات</h2>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span>➕</span>
+            <div className="text-left">
+              <div className="text-sm">Add New Sweet</div>
+              <div className="font-arabic text-xs">إضافة حلوى جديدة</div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {showAddForm && (
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold mb-4">Add New Sweet Type</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <input
+              type="text"
+              placeholder="English Name"
+              value={newItem.item_name}
+              onChange={(e) => setNewItem(prev => ({ ...prev, item_name: e.target.value }))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+            <input
+              type="text"
+              placeholder="Arabic Name / الاسم بالعربية"
+              value={newItem.item_name_arabic}
+              onChange={(e) => setNewItem(prev => ({ ...prev, item_name_arabic: e.target.value }))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 font-arabic"
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Price"
+              value={newItem.price}
+              onChange={(e) => setNewItem(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={handleAdd}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              <div className="text-center">
+                <div className="text-sm">Save</div>
+                <div className="font-arabic text-xs">حفظ</div>
+              </div>
+            </button>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+            >
+              <div className="text-center">
+                <div className="text-sm">Cancel</div>
+                <div className="font-arabic text-xs">إلغاء</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {items.map((item) => (
+          <div key={item.id} className="border border-gray-200 rounded-lg p-4">
+            {editingId === item.id ? (
+              <EditableItemRow
+                item={item}
+                onSave={handleSave}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <div className="flex justify-between items-center">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">{item.item_name}</h3>
+                      {item.item_name_arabic && (
+                        <p className="text-gray-600 font-arabic">{item.item_name_arabic}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-amber-600">${item.price.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="ml-4 flex gap-2">
+                  <button
+                    onClick={() => handleEdit(item)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>✏️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Edit</div>
+                        <div className="font-arabic text-xs">تحرير</div>
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>🗑️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Delete</div>
+                        <div className="font-arabic text-xs">حذف</div>
+                      </div>
+                    </div>
                   </button>
                 </div>
               </div>
@@ -319,13 +531,25 @@ function EditableItemRow({ item, onSave, onCancel }: {
           onClick={() => onSave(editedItem)}
           className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
         >
-          💾 Save
+          <div className="flex items-center gap-1">
+            <span>💾</span>
+            <div className="text-center">
+              <div className="text-xs">Save</div>
+              <div className="font-arabic text-xs">حفظ</div>
+            </div>
+          </div>
         </button>
         <button
           onClick={onCancel}
           className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
         >
-          ❌ Cancel
+          <div className="flex items-center gap-1">
+            <span>❌</span>
+            <div className="text-center">
+              <div className="text-xs">Cancel</div>
+              <div className="font-arabic text-xs">إلغاء</div>
+            </div>
+          </div>
         </button>
       </div>
     </div>
@@ -395,7 +619,13 @@ function MeatTypesEditor({ items, onUpdate }: { items: MeatType[], onUpdate: () 
           onClick={() => setShowAddForm(!showAddForm)}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
         >
-          ➕ Add New Meat Type
+          <div className="flex items-center gap-2">
+            <span>➕</span>
+            <div className="text-left">
+              <div className="text-sm">Add New Meat Type</div>
+              <div className="font-arabic text-xs">إضافة نوع لحمة جديد</div>
+            </div>
+          </div>
         </button>
       </div>
 
@@ -440,13 +670,19 @@ function MeatTypesEditor({ items, onUpdate }: { items: MeatType[], onUpdate: () 
               onClick={handleAdd}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
-              Save
+              <div className="text-center">
+                <div className="text-sm">Save</div>
+                <div className="font-arabic text-xs">حفظ</div>
+              </div>
             </button>
             <button
               onClick={() => setShowAddForm(false)}
               className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
             >
-              Cancel
+              <div className="text-center">
+                <div className="text-sm">Cancel</div>
+                <div className="font-arabic text-xs">إلغاء</div>
+              </div>
             </button>
           </div>
         </div>
@@ -486,13 +722,25 @@ function MeatTypesEditor({ items, onUpdate }: { items: MeatType[], onUpdate: () 
                     onClick={() => handleEdit(item)}
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                   >
-                    ✏️ Edit
+                    <div className="flex items-center gap-1">
+                      <span>✏️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Edit</div>
+                        <div className="font-arabic text-xs">تحرير</div>
+                      </div>
+                    </div>
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                   >
-                    🗑️ Delete
+                    <div className="flex items-center gap-1">
+                      <span>🗑️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Delete</div>
+                        <div className="font-arabic text-xs">حذف</div>
+                      </div>
+                    </div>
                   </button>
                 </div>
               </div>
@@ -547,13 +795,25 @@ function EditableMeatRow({ item, onSave, onCancel }: {
           onClick={() => onSave(editedItem)}
           className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
         >
-          💾 Save
+          <div className="flex items-center gap-1">
+            <span>💾</span>
+            <div className="text-center">
+              <div className="text-xs">Save</div>
+              <div className="font-arabic text-xs">حفظ</div>
+            </div>
+          </div>
         </button>
         <button
           onClick={onCancel}
           className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
         >
-          ❌ Cancel
+          <div className="flex items-center gap-1">
+            <span>❌</span>
+            <div className="text-center">
+              <div className="text-xs">Cancel</div>
+              <div className="font-arabic text-xs">إلغاء</div>
+            </div>
+          </div>
         </button>
       </div>
     </div>
@@ -632,7 +892,13 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
           onClick={() => setShowAddForm(!showAddForm)}
           className="btn-primary px-6 py-3 rounded-lg transition-all duration-300"
         >
-          ➕ Add New Topping
+          <div className="flex items-center gap-2">
+            <span>➕</span>
+            <div className="text-left">
+              <div className="text-sm">Add New Topping</div>
+              <div className="font-arabic text-xs">إضافة إضافة جديدة</div>
+            </div>
+          </div>
         </button>
       </div>
 
@@ -677,13 +943,19 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
                 onClick={handleAdd}
                 className="flex-1 btn-primary px-4 py-2 rounded-lg"
               >
-                Save
+                <div className="text-center">
+                <div className="text-sm">Save</div>
+                <div className="font-arabic text-xs">حفظ</div>
+              </div>
               </button>
               <button
                 onClick={() => setShowAddForm(false)}
                 className="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
               >
-                Cancel
+                <div className="text-center">
+                <div className="text-sm">Cancel</div>
+                <div className="font-arabic text-xs">إلغاء</div>
+              </div>
               </button>
             </div>
           </div>
@@ -727,13 +999,25 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
                     onClick={() => handleEdit(item)}
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
                   >
-                    ✏️ Edit
+                    <div className="flex items-center gap-1">
+                      <span>✏️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Edit</div>
+                        <div className="font-arabic text-xs">تحرير</div>
+                      </div>
+                    </div>
                   </button>
                   <button
                     onClick={() => handleDelete(item.id!)}
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors"
                   >
-                    🗑️ Delete
+                    <div className="flex items-center gap-1">
+                      <span>🗑️</span>
+                      <div className="text-center">
+                        <div className="text-xs">Delete</div>
+                        <div className="font-arabic text-xs">حذف</div>
+                      </div>
+                    </div>
                   </button>
                 </div>
               </div>
@@ -749,7 +1033,10 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
               onClick={() => setShowAddForm(true)}
               className="mt-4 btn-primary px-6 py-3 rounded-lg"
             >
-              Add First Topping
+              <div className="text-center">
+                <div className="text-sm">Add First Topping</div>
+                <div className="font-arabic text-xs">إضافة أول إضافة</div>
+              </div>
             </button>
           </div>
         )}
@@ -803,13 +1090,25 @@ function EditableToppingRow({ item, onSave, onCancel, feteerTypes }: {
           onClick={() => onSave(editedItem)}
           className="flex-1 bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors"
         >
-          💾 Save
+          <div className="flex items-center gap-1">
+            <span>💾</span>
+            <div className="text-center">
+              <div className="text-xs">Save</div>
+              <div className="font-arabic text-xs">حفظ</div>
+            </div>
+          </div>
         </button>
         <button
           onClick={onCancel}
           className="flex-1 bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
         >
-          ❌ Cancel
+          <div className="flex items-center gap-1">
+            <span>❌</span>
+            <div className="text-center">
+              <div className="text-xs">Cancel</div>
+              <div className="font-arabic text-xs">إلغاء</div>
+            </div>
+          </div>
         </button>
       </div>
     </div>

@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database';
+import { getOrdersInDateRange } from '@/lib/database-neon';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '7');
-
-    const db = await getDatabase();
 
     // Calculate date range
     const endDate = new Date();
@@ -17,11 +15,7 @@ export async function GET(request: NextRequest) {
     const endDateStr = endDate.toISOString().split('T')[0];
 
     // Get all orders in date range
-    const orders = await allQuery(db, `
-      SELECT * FROM orders 
-      WHERE date(created_at) >= ? AND date(created_at) <= ?
-      ORDER BY created_at DESC
-    `, [startDateStr, endDateStr]);
+    const orders = await getOrdersInDateRange(startDateStr, endDateStr);
 
     // Calculate analytics
     const totalOrders = orders.length;
@@ -31,7 +25,10 @@ export async function GET(request: NextRequest) {
     // Popular items
     const popularItems: { [key: string]: number } = {};
     orders.forEach(order => {
-      popularItems[order.feteer_type] = (popularItems[order.feteer_type] || 0) + 1;
+      const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
+      if (itemName) {
+        popularItems[itemName] = (popularItems[itemName] || 0) + 1;
+      }
     });
 
     // Top customers
@@ -86,14 +83,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function allQuery(db: any, query: string, params: any[] = []): Promise<any[]> {
-  return new Promise((resolve, reject) => {
-    db.all(query, params, (err: any, rows: any) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(rows || []);
-      }
-    });
-  });
-}

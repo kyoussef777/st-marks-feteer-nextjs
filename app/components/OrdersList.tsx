@@ -119,7 +119,8 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
       <div className="bg-white rounded-lg shadow-md p-4 text-center">
         <div className="text-gray-400 text-3xl mb-2">🍽️</div>
         <h3 className="text-sm font-semibold text-gray-600 mb-1">No Active Orders</h3>
-        <p className="text-xs text-gray-500">All orders completed!</p>
+        <p className="text-xs text-gray-500 mb-1">All orders completed!</p>
+        <p className="text-xs font-arabic text-gray-500">تم الانتهاء من جميع الطلبات!</p>
       </div>
     );
   }
@@ -198,7 +199,10 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
                 onClick={() => updateOrderStatus(order.id, 'in_progress')}
                 className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
               >
-                ▶ Start
+                <div className="text-center">
+                  <div>▶ Start</div>
+                  <div className="font-arabic text-xs">ابدأ</div>
+                </div>
               </button>
             )}
             
@@ -207,7 +211,10 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
                 onClick={() => updateOrderStatus(order.id, 'completed')}
                 className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
               >
-                ✅ Done
+                <div className="text-center">
+                  <div>✅ Done</div>
+                  <div className="font-arabic text-xs">تم</div>
+                </div>
               </button>
             )}
 
@@ -215,14 +222,20 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
               onClick={() => printLabel(order.id)}
               className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
             >
-              🖨️ Print
+              <div className="text-center">
+                <div>🖨️ Print</div>
+                <div className="font-arabic text-xs">طباعة</div>
+              </div>
             </button>
             
             <button
               onClick={() => deleteOrder(order.id)}
               className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
             >
-              🗑️
+              <div className="text-center">
+                <div>🗑️</div>
+                <div className="font-arabic text-xs">حذف</div>
+              </div>
             </button>
           </div>
         </div>

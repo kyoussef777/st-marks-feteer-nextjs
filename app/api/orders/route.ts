@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createOrder, getAllOrders, getOrdersByStatus, getMenuConfig, getSweetTypes } from '@/lib/database';
+import { createOrder, getAllOrders, getOrdersByStatus, getMenuConfig, getSweetTypes } from '@/lib/database-neon';
 
 export async function GET(request: NextRequest) {
   try {

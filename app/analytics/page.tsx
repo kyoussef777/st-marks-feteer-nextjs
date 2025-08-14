@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
           Analytics Dashboard
         </h1>
         <p className="font-arabic-heading">
-          لوحة التحليلات
+          لوحة التحليلات - فطير وحلويات
         </p>
       </div>
 
@@ -139,8 +139,8 @@ export default function AnalyticsPage() {
         {/* Popular Items */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Popular Items
-            <span className="block text-lg font-arabic text-gray-600">الأصناف الأكثر طلباً</span>
+            Popular Items (Feteer & Sweets)
+            <span className="block text-lg font-arabic text-gray-600">الأصناف الأكثر طلباً - فطير وحلويات</span>
           </h2>
           <div className="space-y-4">
             {Object.entries(analytics.popularItems)

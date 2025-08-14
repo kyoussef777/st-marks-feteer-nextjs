@@ -6,7 +6,9 @@ import { toZonedTime, format } from 'date-fns-tz';
 interface Order {
   id: number;
   customer_name: string;
-  feteer_type: string;
+  item_type: 'feteer' | 'sweet';
+  feteer_type?: string;
+  sweet_type?: string;
   meat_selection?: string;
   cheese_selection?: string;
   has_cheese: boolean;
@@ -138,9 +140,10 @@ export default function OrdersPage() {
     const matchesFilter = filter === 'all' || 
                          (filter === 'active' && (order.status === 'pending' || order.status === 'in_progress')) ||
                          order.status === filter;
+    const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
     const matchesSearch = searchTerm === '' || 
       order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.feteer_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (itemName && itemName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       order.id.toString().includes(searchTerm);
     
     return matchesFilter && matchesSearch;
@@ -172,7 +175,7 @@ export default function OrdersPage() {
           Current Orders
         </h1>
         <p className="font-arabic-heading">
-          الطلبات الحالية
+          الطلبات الحالية - فطير وحلويات
         </p>
       </div>
 
@@ -279,17 +282,26 @@ export default function OrdersPage() {
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm font-semibold text-gray-800">
-                      🥞 {order.feteer_type}
+                      {order.item_type === 'sweet' ? '🍰' : '🥞'} {order.item_type === 'sweet' ? order.sweet_type : order.feteer_type}
                     </div>
                     <div className="font-arabic text-sm text-amber-700 font-bold">
-                      {order.feteer_type === 'Mixed Meat' ? 'لحمة مشكلة' :
-                       order.feteer_type === 'Sweet (Custard and Sugar)' ? 'حلو (كسترد وسكر)' :
-                       order.feteer_type === 'Feteer Meshaltet (Plain)' ? 'فطير مشلتت سادة' : 'فطير'}
+                      {order.item_type === 'sweet' ? (
+                        order.sweet_type === 'Basbousa' ? 'بسبوسة' :
+                        order.sweet_type === 'Kunafa' ? 'كنافة' :
+                        order.sweet_type === 'Om Ali' ? 'أم علي' :
+                        order.sweet_type === 'Baklava' ? 'بقلاوة' :
+                        order.sweet_type === 'Muhallabia' ? 'مهلبية' :
+                        order.sweet_type === 'Rice Pudding' ? 'رز بلبن' : 'حلوى'
+                      ) : (
+                        order.feteer_type === 'Mixed Meat' ? 'لحمة مشكلة' :
+                        order.feteer_type === 'Sweet (Custard and Sugar)' ? 'حلو (كسترد وسكر)' :
+                        order.feteer_type === 'Feteer Meshaltet (Plain)' ? 'فطير مشلتت سادة' : 'فطير'
+                      )}
                     </div>
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    {order.feteer_type === 'Mixed Meat' && (
+                    {order.item_type === 'feteer' && order.feteer_type === 'Mixed Meat' && (
                       <div className="bg-amber-50 rounded p-2 text-xs">
                         <span className="text-amber-900 font-medium">
                           🥩 {order.meat_selection?.split(',').join(', ') || 'No meats'}
@@ -297,6 +309,12 @@ export default function OrdersPage() {
                         <span className={`ml-2 ${order.has_cheese ? 'text-green-600' : 'text-red-600'}`}>
                           {order.has_cheese ? '✓ جبنة' : '✗ بدون جبنة'}
                         </span>
+                      </div>
+                    )}
+
+                    {order.item_type === 'sweet' && (
+                      <div className="bg-pink-50 rounded p-2 text-xs">
+                        <span className="text-pink-900 font-medium">🍰 حلوى</span>
                       </div>
                     )}
 
@@ -323,7 +341,7 @@ export default function OrdersPage() {
                       onClick={() => updateOrderStatus(order.id, 'in_progress')}
                       className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
                     >
-                      ▶️ ابدأ الطبخ
+                      ▶️ ابدأ الطبخ (Start Cooking)
                     </button>
                   )}
                   
@@ -332,7 +350,7 @@ export default function OrdersPage() {
                       onClick={() => updateOrderStatus(order.id, 'completed')}
                       className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
                     >
-                      ✅ مكتمل
+                      ✅ مكتمل (Complete)
                     </button>
                   )}
 
@@ -341,7 +359,7 @@ export default function OrdersPage() {
                       onClick={() => updateOrderStatus(order.id, 'in_progress')}
                       className="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors"
                     >
-                      ↩️ قيد التحضير
+                      ↩️ قيد التحضير (In Progress)
                     </button>
                   )}
 
@@ -350,7 +368,7 @@ export default function OrdersPage() {
                     onClick={() => printLabel(order.id)}
                     className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors"
                   >
-                    🖨️ طباعة
+                    🖨️ طباعة (Print)
                   </button>
 
                   {/* Delete Button */}
@@ -358,7 +376,7 @@ export default function OrdersPage() {
                     onClick={() => deleteOrder(order.id)}
                     className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                   >
-                    🗑️ حذف
+                    🗑️ حذف (Delete)
                   </button>
                 </div>
               </div>

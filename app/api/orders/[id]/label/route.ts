@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database';
+import { getOrderById } from '@/lib/database-neon';
 import jsPDF from 'jspdf';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const db = await getDatabase();
     
-    const order = await getQuery(db, `
-      SELECT o.id, o.customer_name, o.feteer_type, o.meat_selection, o.cheese_selection, 
-             o.has_cheese, o.extra_nutella, o.notes, o.status, o.price, o.created_at
-      FROM orders o 
-      WHERE o.id = ?
-    `, [parseInt(id)]);
+    const order = await getOrderById(parseInt(id));
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
@@ -50,6 +44,46 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return cleanText;
     };
 
+    // Function to wrap text to fit within label width
+    const wrapText = (text: string, maxWidth: number, pdf: jsPDF): string[] => {
+      if (!text) return [];
+      
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const textWidth = pdf.getTextWidth(testLine);
+        
+        if (textWidth > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      return lines;
+    };
+
+    // Function to add wrapped text and return new Y position
+    const addWrappedText = (text: string, x: number, y: number, maxWidth: number, pdf: jsPDF, lineHeight: number): number => {
+      const lines = wrapText(text, maxWidth, pdf);
+      let currentY = y;
+      
+      for (const line of lines) {
+        pdf.text(line, x, currentY);
+        currentY += lineHeight;
+      }
+      
+      return currentY;
+    };
+
     // Set fonts
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(18);
@@ -57,86 +91,93 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     let yPos = 20;
     const margin = 10;
     const lineHeight = 8;
+    const maxWidth = 80; // mm - maximum width for text
 
-    // Customer name (main title) - sanitized
-    pdf.text(`#${order.id} - ${sanitizeText(order.customer_name)}`, margin, yPos);
-    yPos += lineHeight * 1.5;
+    // Customer name (main title) - with wrapping
+    const customerText = `#${order.id} - ${sanitizeText(order.customer_name)}`;
+    yPos = addWrappedText(customerText, margin, yPos, maxWidth, pdf, lineHeight);
+    yPos += lineHeight * 0.5;
 
-    // Feteer type - sanitized
+    // Item type and name - with wrapping
     pdf.setFontSize(14);
-    pdf.text(sanitizeText(order.feteer_type), margin, yPos);
-    yPos += lineHeight;
-
- 
+    const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
+    const itemType = order.item_type === 'sweet' ? 'SWEET' : 'FETEER';
+    const itemText = `${itemType}: ${sanitizeText(itemName)}`;
+    yPos = addWrappedText(itemText, margin, yPos, maxWidth, pdf, lineHeight);
+    yPos += lineHeight * 0.5;
 
     // Order details
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(14);
+    pdf.setFontSize(12);
 
-    if (sanitizeText(order.feteer_type) === 'Mixed Meat' && order.meat_selection) {
-      pdf.text('MEAT SELECTION:', margin, yPos);
-      yPos += lineHeight;
-      pdf.setFontSize(13);
+    // Feteer-specific details
+    if (order.item_type === 'feteer' && sanitizeText(order.feteer_type) === 'Mixed Meat' && order.meat_selection) {
+      pdf.setFont('helvetica', 'bold');
+      yPos = addWrappedText('MEAT SELECTION:', margin, yPos, maxWidth, pdf, lineHeight);
+      
+      pdf.setFont('helvetica', 'normal');
       const meats = sanitizeText(order.meat_selection).split(',').join(', ');
-      pdf.text(meats, margin + 5, yPos);
-      yPos += lineHeight;
+      yPos = addWrappedText(meats, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
       
       const cheeseText = order.has_cheese ? 'WITH CHEESE' : 'NO CHEESE';
-      pdf.text(cheeseText, margin + 5, yPos);
-      yPos += lineHeight * 1.5;
+      yPos = addWrappedText(cheeseText, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
+      yPos += lineHeight * 0.5;
+    }
+
+    // Sweet-specific details
+    if (order.item_type === 'sweet') {
+      pdf.setFont('helvetica', 'bold');
+      yPos = addWrappedText('DESSERT ORDER', margin, yPos, maxWidth, pdf, lineHeight);
+      pdf.setFont('helvetica', 'normal');
+      yPos += lineHeight * 0.5;
     }
 
     // Extra toppings
     if (order.extra_nutella) {
-      pdf.text('EXTRA TOPPINGS:', margin, yPos);
-      yPos += lineHeight;
-      pdf.text('• Extra Nutella (+$2.00)', margin + 5, yPos);
-      yPos += lineHeight * 1.5;
+      pdf.setFont('helvetica', 'bold');
+      yPos = addWrappedText('EXTRA TOPPINGS:', margin, yPos, maxWidth, pdf, lineHeight);
+      
+      pdf.setFont('helvetica', 'normal');
+      yPos = addWrappedText('• Extra Nutella (+$2.00)', margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
+      yPos += lineHeight * 0.5;
     }
 
-    // Notes - sanitized
+    // Notes - with proper wrapping
     if (order.notes && order.notes.trim()) {
       const sanitizedNotes = sanitizeText(order.notes);
       if (sanitizedNotes) {
-        pdf.text('SPECIAL NOTES:', margin, yPos);
-        yPos += lineHeight;
-        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        yPos = addWrappedText('SPECIAL NOTES:', margin, yPos, maxWidth, pdf, lineHeight);
         
-        // Word wrap for notes
-        const noteWords = sanitizedNotes.split(' ');
-        let currentLine = '';
-        const maxWidth = 80; // mm
-        
-        for (const word of noteWords) {
-          const testLine = currentLine + (currentLine ? ' ' : '') + word;
-          const textWidth = pdf.getTextWidth(testLine);
-          
-          if (textWidth > maxWidth && currentLine) {
-            pdf.text(currentLine, margin + 5, yPos);
-            yPos += lineHeight;
-            currentLine = word;
-          } else {
-            currentLine = testLine;
-          }
-        }
-        
-        if (currentLine) {
-          pdf.text(currentLine, margin + 5, yPos);
-          yPos += lineHeight;
-        }
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(11);
+        yPos = addWrappedText(sanitizedNotes, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
+        yPos += lineHeight * 0.5;
       }
     }
 
-    // Price and timestamp at bottom
-    yPos = 100; // Near bottom (adjusted for taller label)
+    // Ensure we don't exceed the label height
+    const minBottomSpace = 30; // Reserve space for price and footer
+    if (yPos > 180 - minBottomSpace) {
+      yPos = 180 - minBottomSpace;
+    }
+
+    // Add a separator line before the footer
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, yPos + 5, 100 - margin, yPos + 5);
+    yPos += 15;
+
+    // Price and status at bottom
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(`TOTAL: $${order.price.toFixed(2)}`, margin, yPos);
+    yPos = addWrappedText(`TOTAL: $${order.price.toFixed(2)}`, margin, yPos, maxWidth, pdf, lineHeight);
     
-
-    // Add a separator line
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, yPos - 5, 100 - margin, yPos - 5);
+    // Timestamp
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const date = new Date(order.created_at);
+    const timeText = `Ordered: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+    yPos = addWrappedText(timeText, margin, yPos, maxWidth, pdf, lineHeight);
     
 
     // Generate PDF buffer
@@ -157,14 +198,3 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-function getQuery(db: any, query: string, params: any[] = []): Promise<any> {
-  return new Promise((resolve, reject) => {
-    db.get(query, params, (err: any, row: any) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(row);
-      }
-    });
-  });
-}

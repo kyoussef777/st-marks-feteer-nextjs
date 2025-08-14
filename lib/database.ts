@@ -119,7 +119,7 @@ function getQuery(db: sqlite3.Database, query: string, params: any[] = []): Prom
   });
 }
 
-function allQuery(db: sqlite3.Database, query: string, params: any[] = []): Promise<any[]> {
+export function allQuery(db: sqlite3.Database, query: string, params: any[] = []): Promise<any[]> {
   return new Promise((resolve, reject) => {
     db.all(query, params, (err, rows) => {
       if (err) {
@@ -152,6 +152,9 @@ async function initializeDatabaseTables() {
       created_at TEXT NOT NULL
     )
   `);
+
+  // Run migrations to update existing tables
+  await runMigrations(dbInstance);
 
   // Create menu configuration table
   await runQuery(dbInstance, `
@@ -202,6 +205,67 @@ async function initializeDatabaseTables() {
 
   // Insert default data if tables are empty
   await insertDefaultData(dbInstance);
+}
+
+async function runMigrations(db: sqlite3.Database) {
+  // Check if orders table has item_type column
+  try {
+    const tableInfo = await allQuery(db, 'PRAGMA table_info(orders)');
+    const hasItemType = tableInfo.some((column: any) => column.name === 'item_type');
+    const hasSweetType = tableInfo.some((column: any) => column.name === 'sweet_type');
+    
+    if (!hasItemType) {
+      console.log('Adding item_type column to orders table...');
+      await runQuery(db, 'ALTER TABLE orders ADD COLUMN item_type TEXT NOT NULL DEFAULT "feteer"');
+    }
+    
+    if (!hasSweetType) {
+      console.log('Adding sweet_type column to orders table...');
+      await runQuery(db, 'ALTER TABLE orders ADD COLUMN sweet_type TEXT');
+    }
+    
+    // Check if we need to migrate the table structure to allow nullable feteer_type
+    const feteerTypeColumn = tableInfo.find((column: any) => column.name === 'feteer_type');
+    if (feteerTypeColumn && feteerTypeColumn.notnull === 1) {
+      console.log('Migrating orders table to allow nullable feteer_type...');
+      
+      // Create new table with correct schema
+      await runQuery(db, `
+        CREATE TABLE orders_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_name TEXT NOT NULL,
+          item_type TEXT NOT NULL DEFAULT 'feteer',
+          feteer_type TEXT,
+          sweet_type TEXT,
+          meat_selection TEXT,
+          cheese_selection TEXT,
+          has_cheese BOOLEAN DEFAULT 1,
+          extra_nutella BOOLEAN DEFAULT 0,
+          notes TEXT,
+          status TEXT NOT NULL,
+          price REAL NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      
+      // Copy data from old table
+      await runQuery(db, `
+        INSERT INTO orders_new (id, customer_name, item_type, feteer_type, sweet_type, meat_selection, cheese_selection, has_cheese, extra_nutella, notes, status, price, created_at)
+        SELECT id, customer_name, 
+               CASE WHEN item_type IS NULL THEN 'feteer' ELSE item_type END,
+               feteer_type,
+               CASE WHEN sweet_type IS NULL THEN NULL ELSE sweet_type END,
+               meat_selection, cheese_selection, has_cheese, extra_nutella, notes, status, price, created_at
+        FROM orders
+      `);
+      
+      // Drop old table and rename new one
+      await runQuery(db, 'DROP TABLE orders');
+      await runQuery(db, 'ALTER TABLE orders_new RENAME TO orders');
+    }
+  } catch (error) {
+    console.error('Error running migrations:', error);
+  }
 }
 
 export async function initializeDatabase() {

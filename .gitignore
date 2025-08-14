@@ -44,6 +44,9 @@ next-env.d.ts
 *.sqlite3
 *.db
 
+# drizzle
+.drizzle/
+
 # docker
 .dockerignore
 docker-compose.override.yml

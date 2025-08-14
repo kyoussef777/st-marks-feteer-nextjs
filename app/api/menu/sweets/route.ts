@@ -3,24 +3,22 @@ import { createMenuItem } from '@/lib/database-neon';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { item_name, item_name_arabic, price, item_type } = body;
-
-    if (!item_name || price == null) {
+    const { item_name, item_name_arabic, price } = await request.json();
+    
+    if (!item_name || price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const id = await createMenuItem({
-      item_type: item_type || 'feteer_type',
+      item_type: 'sweet_type',
       item_name,
       item_name_arabic: item_name_arabic || null,
       price
     });
 
-    return NextResponse.json({ id }, { status: 201 });
+    return NextResponse.json({ success: true, id });
   } catch (error) {
-    console.error('Error adding menu item:', error);
-    return NextResponse.json({ error: 'Failed to add menu item' }, { status: 500 });
+    console.error('Error creating sweet:', error);
+    return NextResponse.json({ error: 'Failed to create sweet' }, { status: 500 });
   }
 }
-

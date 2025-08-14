@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateOrderStatus, deleteOrder } from '@/lib/database';
+import { updateOrderStatus, deleteOrder } from '@/lib/database-neon';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
