@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrderById } from '@/lib/database-neon';
+import { getOrderById } from '@/lib/database-hybrid';
 import jsPDF from 'jspdf';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

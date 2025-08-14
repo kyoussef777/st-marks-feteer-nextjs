@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { initializeDatabase } from '@/lib/database-neon';
+import { initializeDatabase } from '@/lib/database-hybrid';
 
 export async function POST() {
   try {

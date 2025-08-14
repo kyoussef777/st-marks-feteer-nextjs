@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMenuConfig, getSweetTypes, getMeatTypes, getCheeseTypes, getExtraToppings } from '@/lib/database-neon';
+import { getMenuConfig, getSweetTypes, getMeatTypes, getCheeseTypes, getExtraToppings } from '@/lib/database-hybrid';
 
 export async function GET() {
   try {
