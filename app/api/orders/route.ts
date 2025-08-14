@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       // Get feteer price
       const feteerTypes = await getMenuConfig();
       const selectedFeteer = feteerTypes.find(f => f.item_name === body.feteer_type);
-      if (selectedFeteer) {
+      if (selectedFeteer && selectedFeteer.price) {
         price += selectedFeteer.price;
       }
       
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       // Get sweet price
       const sweetTypes = await getSweetTypes();
       const selectedSweet = sweetTypes.find(s => s.item_name === body.sweet_type);
-      if (selectedSweet) {
+      if (selectedSweet && selectedSweet.price) {
         price += selectedSweet.price;
       }
     }

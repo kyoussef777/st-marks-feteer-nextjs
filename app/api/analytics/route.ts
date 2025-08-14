@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
     const dateMap: { [key: string]: { orders: number; revenue: number } } = {};
 
     orders.forEach(order => {
-      const date = order.created_at.split('T')[0];
+      const date = typeof order.created_at === 'string' 
+        ? order.created_at.split('T')[0]
+        : order.created_at.toISOString().split('T')[0];
       if (!dateMap[date]) {
         dateMap[date] = { orders: 0, revenue: 0 };
       }

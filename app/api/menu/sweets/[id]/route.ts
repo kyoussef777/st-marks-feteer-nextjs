@@ -3,11 +3,12 @@ import { updateMenuItem, deleteMenuItem } from '@/lib/database-hybrid';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: paramId } = await params;
     const { item_name, item_name_arabic, price } = await request.json();
-    const id = parseInt(params.id);
+    const id = parseInt(paramId);
 
     if (!item_name || price === undefined || isNaN(id)) {
       return NextResponse.json({ error: 'Missing required fields or invalid ID' }, { status: 400 });
@@ -28,10 +29,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });

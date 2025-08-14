@@ -102,7 +102,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     pdf.setFontSize(14);
     const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
     const itemType = order.item_type === 'sweet' ? 'SWEET' : 'FETEER';
-    const itemText = `${itemType}: ${sanitizeText(itemName)}`;
+    const itemText = `${itemType}: ${sanitizeText(itemName || '')}`;
     yPos = addWrappedText(itemText, margin, yPos, maxWidth, pdf, lineHeight);
     yPos += lineHeight * 0.5;
 
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     pdf.setFontSize(12);
 
     // Feteer-specific details
-    if (order.item_type === 'feteer' && sanitizeText(order.feteer_type) === 'Mixed Meat' && order.meat_selection) {
+    if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Mixed Meat' && order.meat_selection) {
       pdf.setFont('helvetica', 'bold');
       yPos = addWrappedText('MEAT SELECTION:', margin, yPos, maxWidth, pdf, lineHeight);
       
