@@ -127,7 +127,6 @@ When adding new UI elements:
 
 ## Testing Commands
 
-
 The app doesn't have automated tests configured yet. Manual testing should focus on:
 - Order creation flow for both feteer and sweets
 - Status transitions in OrdersList component
