@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  nextjs-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nextjs-app-development
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      # Persist SQLite database
+      - ./db.sqlite3:/app/db.sqlite3
+    command: npm run dev
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+networks:
+  dev-network:
+    driver: bridge
