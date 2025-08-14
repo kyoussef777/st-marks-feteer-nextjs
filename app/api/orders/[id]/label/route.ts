@@ -172,11 +172,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     pdf.setFont('helvetica', 'bold');
     yPos = addWrappedText(`TOTAL: $${order.price.toFixed(2)}`, margin, yPos, maxWidth, pdf, lineHeight);
     
-    // Timestamp
+    // Timestamp (converted to EST)
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont('helvetica', 'bold');
     const date = new Date(order.created_at);
-    const timeText = `Ordered: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+    const estDate = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const timeText = `Ordered: ${estDate.toLocaleDateString()} ${estDate.toLocaleTimeString()} EST`;
     yPos = addWrappedText(timeText, margin, yPos, maxWidth, pdf, lineHeight);
     
 

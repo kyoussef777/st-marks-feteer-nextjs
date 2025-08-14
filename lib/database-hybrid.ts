@@ -2,6 +2,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import { getEasternTime } from './timezone-utils';
 
 // Import Neon types and functions
 import { 
@@ -179,6 +180,11 @@ export async function getOrderById(id: number): Promise<Order | undefined> {
 }
 
 export async function getMenuConfig(): Promise<MenuConfig[]> {
+  // Ensure database is initialized
+  if (!isInitialized) {
+    await initializeDatabase();
+  }
+  
   if (isNeonAvailable) {
     const db = getDatabase();
     return await db.select().from(neonMenuConfig).where(eq(neonMenuConfig.item_type, 'feteer_type'));
@@ -188,6 +194,11 @@ export async function getMenuConfig(): Promise<MenuConfig[]> {
 }
 
 export async function getSweetTypes(): Promise<MenuConfig[]> {
+  // Ensure database is initialized
+  if (!isInitialized) {
+    await initializeDatabase();
+  }
+  
   if (isNeonAvailable) {
     const db = getDatabase();
     return await db.select().from(neonMenuConfig).where(eq(neonMenuConfig.item_type, 'sweet_type'));
@@ -197,6 +208,11 @@ export async function getSweetTypes(): Promise<MenuConfig[]> {
 }
 
 export async function getMeatTypes(): Promise<MeatType[]> {
+  // Ensure database is initialized
+  if (!isInitialized) {
+    await initializeDatabase();
+  }
+  
   if (isNeonAvailable) {
     const db = getDatabase();
     return await db.select().from(neonMeatTypes);
@@ -206,6 +222,11 @@ export async function getMeatTypes(): Promise<MeatType[]> {
 }
 
 export async function getCheeseTypes(): Promise<CheeseType[]> {
+  // Ensure database is initialized
+  if (!isInitialized) {
+    await initializeDatabase();
+  }
+  
   if (isNeonAvailable) {
     const db = getDatabase();
     return await db.select().from(neonCheeseTypes);
@@ -215,6 +236,11 @@ export async function getCheeseTypes(): Promise<CheeseType[]> {
 }
 
 export async function getExtraToppings(): Promise<ExtraTopping[]> {
+  // Ensure database is initialized
+  if (!isInitialized) {
+    await initializeDatabase();
+  }
+  
   if (isNeonAvailable) {
     const db = getDatabase();
     return await db.select().from(neonExtraToppings);
