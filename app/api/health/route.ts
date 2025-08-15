@@ -7,8 +7,8 @@ export async function GET() {
     const db = await getDatabase();
     
     // Simple query to verify database is accessible
-    await new Promise((resolve, reject) => {
-      db.get('SELECT 1 as status', [], (err: any, row: any) => {
+    await new Promise<{ status: number }>((resolve, reject) => {
+      db.get('SELECT 1 as status', [], (err: Error | null, row: { status: number }) => {
         if (err) {
           reject(err);
         } else {

@@ -2,13 +2,24 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 
-// Auth configuration from environment variables
+// Auth configuration from environment variables - NO DEFAULTS IN PRODUCTION
 const AUTH_CONFIG = {
-  username: process.env.AUTH_USERNAME || 'admin',
-  password: process.env.AUTH_PASSWORD || 'stmarks2024!',
-  jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+  username: process.env.AUTH_USERNAME,
+  password: process.env.AUTH_PASSWORD,
+  jwtSecret: process.env.JWT_SECRET,
   tokenExpiry: '7d', // Token expires in 7 days
 };
+
+// Validate required environment variables
+if (!AUTH_CONFIG.username) {
+  throw new Error('AUTH_USERNAME environment variable is required');
+}
+if (!AUTH_CONFIG.password) {
+  throw new Error('AUTH_PASSWORD environment variable is required');
+}
+if (!AUTH_CONFIG.jwtSecret) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 export interface AuthUser {
   username: string;
@@ -57,9 +68,16 @@ export function generateToken(username: string): string {
 /**
  * Verify JWT token and return user data
  */
+interface JWTPayload {
+  username: string;
+  isAuthenticated: boolean;
+  iat?: number;
+  exp?: number;
+}
+
 export function verifyToken(token: string): AuthUser | null {
   try {
-    const decoded = jwt.verify(token, AUTH_CONFIG.jwtSecret) as any;
+    const decoded = jwt.verify(token, AUTH_CONFIG.jwtSecret) as JWTPayload;
     
     if (!decoded || !decoded.username || !decoded.isAuthenticated) {
       return null;

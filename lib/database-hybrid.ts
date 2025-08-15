@@ -2,6 +2,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import type { Order as OrderType, CreateOrderData } from '@/types';
 
 // Import Neon types and functions
 import { 
@@ -11,7 +12,6 @@ import {
   cheese_types as neonCheeseTypes, 
   extra_toppings as neonExtraToppings,
   type Order as NeonOrder,
-  type NewOrder as NeonNewOrder,
   type MenuConfig as NeonMenuConfig,
   type MeatType as NeonMeatType,
   type CheeseType as NeonCheeseType,
@@ -119,7 +119,7 @@ export async function getOrdersByStatus(status: string): Promise<Order[]> {
   }
 }
 
-export async function createOrder(order: Omit<NeonNewOrder, 'id' | 'created_at'>): Promise<number> {
+export async function createOrder(order: CreateOrderData): Promise<number> {
   if (isNeonAvailable) {
     const db = getDatabase();
     const result = await db.insert(neonOrders).values({
@@ -127,7 +127,7 @@ export async function createOrder(order: Omit<NeonNewOrder, 'id' | 'created_at'>
       item_type: order.item_type,
       feteer_type: order.feteer_type || null,
       sweet_type: order.sweet_type || null,
-      sweet_selections: (order as any).sweet_selections || null,
+      sweet_selections: order.sweet_selections || null,
       meat_selection: order.meat_selection || null,
       cheese_selection: order.cheese_selection || null,
       has_cheese: order.has_cheese,
@@ -139,7 +139,7 @@ export async function createOrder(order: Omit<NeonNewOrder, 'id' | 'created_at'>
 
     return result[0].id;
   } else {
-    return await sqliteCreateOrder(order as any);
+    return await sqliteCreateOrder(order);
   }
 }
 
@@ -168,10 +168,10 @@ export async function getOrderById(id: number): Promise<Order | undefined> {
     return result[0];
   } else {
     // SQLite version
-    const { getDatabase: getSQLiteDB, allQuery } = await import('./database');
+    const { getDatabase: getSQLiteDB } = await import('./database');
     const db = await getSQLiteDB();
-    return await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM orders WHERE id = ?', [id], (err: any, row: any) => {
+    return await new Promise<OrderType>((resolve, reject) => {
+      db.get('SELECT * FROM orders WHERE id = ?', [id], (err: Error | null, row: OrderType) => {
         if (err) reject(err);
         else resolve(row);
       });
@@ -253,7 +253,13 @@ export async function getExtraToppings(): Promise<ExtraTopping[]> {
 export async function createMenuItem(item: Omit<MenuConfig, 'id' | 'created_at'>): Promise<number> {
   if (isNeonAvailable) {
     const db = getDatabase();
-    const result = await db.insert(neonMenuConfig).values(item as any).returning({ id: neonMenuConfig.id });
+    const result = await db.insert(neonMenuConfig).values({
+      category: item.category,
+      item_name: item.item_name,
+      item_name_arabic: item.item_name_arabic,
+      price: item.price,
+      available: item.available ?? true
+    }).returning({ id: neonMenuConfig.id });
     return result[0].id;
   } else {
     // SQLite fallback
@@ -270,7 +276,13 @@ export async function createMenuItem(item: Omit<MenuConfig, 'id' | 'created_at'>
 export async function updateMenuItem(id: number, item: Partial<MenuConfig>): Promise<void> {
   if (isNeonAvailable) {
     const db = getDatabase();
-    await db.update(neonMenuConfig).set(item as any).where(eq(neonMenuConfig.id, id));
+    await db.update(neonMenuConfig).set({
+      category: item.category,
+      item_name: item.item_name,
+      item_name_arabic: item.item_name_arabic,
+      price: item.price,
+      available: item.available
+    }).where(eq(neonMenuConfig.id, id));
   } else {
     // SQLite fallback
     const { getDatabase: getSQLiteDB, runQuery } = await import('./database');
@@ -308,11 +320,18 @@ export async function getOrdersInDateRange(startDate: string, endDate: string): 
     // SQLite fallback
     const { getDatabase: getSQLiteDB } = await import('./database');
     const db = await getSQLiteDB();
-    return await new Promise((resolve, reject) => {
+    return await new Promise<Order[]>((resolve, reject) => {
       db.all('SELECT * FROM orders WHERE date(created_at) >= ? AND date(created_at) <= ? ORDER BY created_at DESC', 
-        [startDate, endDate], (err: any, rows: any) => {
+        [startDate, endDate], (err: Error | null, rows: unknown[]) => {
         if (err) reject(err);
-        else resolve(rows || []);
+        else resolve((rows as Order[]).map(row => ({
+          ...row,
+          feteer_type: row.feteer_type ?? null,
+          sweet_type: row.sweet_type ?? null,
+          sweet_selections: row.sweet_selections ?? null,
+          meat_selection: row.meat_selection ?? null,
+          cheese_selection: row.cheese_selection ?? null
+        })));
       });
     });
   }

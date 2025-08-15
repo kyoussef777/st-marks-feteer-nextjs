@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { Order } from '@/types';
 import { Line } from 'react-chartjs-2';
 import { toZonedTime, format } from 'date-fns-tz';
 import {
@@ -38,7 +39,7 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [allOrders, setAllOrders] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -86,10 +87,10 @@ export default function AnalyticsPage() {
     try {
       const selections = JSON.parse(sweetSelections);
       return Object.entries(selections)
-        .filter(([_, quantity]) => (quantity as number) > 0)
+        .filter(([, quantity]) => (quantity as number) > 0)
         .map(([sweetName, quantity]) => `${sweetName} (${quantity})`)
         .join(', ');
-    } catch (error) {
+    } catch {
       return sweetSelections;
     }
   };

@@ -95,7 +95,7 @@ export function getDatabase(): Promise<sqlite3.Database> {
   });
 }
 
-export function runQuery(db: sqlite3.Database, query: string, params: any[] = []): Promise<{ lastID: number; changes: number }> {
+export function runQuery(db: sqlite3.Database, query: string, params: (string | number | boolean | null)[] = []): Promise<{ lastID: number; changes: number }> {
   return new Promise((resolve, reject) => {
     db.run(query, params, function(err) {
       if (err) {
@@ -107,7 +107,7 @@ export function runQuery(db: sqlite3.Database, query: string, params: any[] = []
   });
 }
 
-function getQuery(db: sqlite3.Database, query: string, params: any[] = []): Promise<any> {
+function getQuery(db: sqlite3.Database, query: string, params: unknown[] = []): Promise<unknown> {
   return new Promise((resolve, reject) => {
     db.get(query, params, (err, row) => {
       if (err) {
@@ -119,7 +119,7 @@ function getQuery(db: sqlite3.Database, query: string, params: any[] = []): Prom
   });
 }
 
-export function allQuery(db: sqlite3.Database, query: string, params: any[] = []): Promise<any[]> {
+export function allQuery(db: sqlite3.Database, query: string, params: unknown[] = []): Promise<unknown[]> {
   return new Promise((resolve, reject) => {
     db.all(query, params, (err, rows) => {
       if (err) {
@@ -211,8 +211,8 @@ async function runMigrations(db: sqlite3.Database) {
   // Check if orders table has item_type column
   try {
     const tableInfo = await allQuery(db, 'PRAGMA table_info(orders)');
-    const hasItemType = tableInfo.some((column: any) => column.name === 'item_type');
-    const hasSweetType = tableInfo.some((column: any) => column.name === 'sweet_type');
+    const hasItemType = tableInfo.some((column: { name: string }) => column.name === 'item_type');
+    const hasSweetType = tableInfo.some((column: { name: string }) => column.name === 'sweet_type');
     
     if (!hasItemType) {
       console.log('Adding item_type column to orders table...');
@@ -225,7 +225,7 @@ async function runMigrations(db: sqlite3.Database) {
     }
     
     // Check if we need to migrate the table structure to allow nullable feteer_type
-    const feteerTypeColumn = tableInfo.find((column: any) => column.name === 'feteer_type');
+    const feteerTypeColumn = tableInfo.find((column: { name: string; notnull: number }) => column.name === 'feteer_type');
     if (feteerTypeColumn && feteerTypeColumn.notnull === 1) {
       console.log('Migrating orders table to allow nullable feteer_type...');
       

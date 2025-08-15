@@ -52,7 +52,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🥞</div>
           <h1 className="text-3xl font-bold text-amber-900 mb-2">
-            St. Mark's Sweets & Feteer
+            St. Mark&apos;s Sweets & Feteer
           </h1>
           <p className="text-amber-700 font-arabic text-lg">
             فطير وحلويات مار مرقس
@@ -147,7 +147,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>© 2024 St. Mark's Sweets & Feteer</p>
+          <p>© 2024 St. Mark&apos;s Sweets & Feteer</p>
           <p className="font-arabic">© ٢٠٢٤ فطير وحلويات مار مرقس</p>
         </div>
       </div>

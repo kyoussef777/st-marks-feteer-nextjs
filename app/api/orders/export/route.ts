@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         try {
           const selections = JSON.parse(sweetSelections);
           return Object.entries(selections)
-            .filter(([_, quantity]) => (quantity as number) > 0)
+            .filter(([, quantity]) => (quantity as number) > 0)
             .map(([sweetName, quantity]) => `${sweetName} (${quantity})`)
             .join('; ');
         } catch {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         order.item_type,
         order.feteer_type || '',
         order.sweet_type || '',
-        `"${formatSweetSelections((order as any).sweet_selections)}"`,
+        `"${formatSweetSelections((order as Record<string, unknown>).sweet_selections as string | null)}"`,
         `"${order.meat_selection || ''}"`,
         order.has_cheese ? 'Yes' : 'No',
         order.extra_nutella ? 'Yes' : 'No',

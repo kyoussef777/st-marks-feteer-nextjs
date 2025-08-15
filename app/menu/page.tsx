@@ -18,12 +18,6 @@ interface MeatType {
   is_default: boolean;
 }
 
-interface CheeseType {
-  id: number;
-  name: string;
-  name_arabic?: string;
-  price: number;
-}
 
 interface ExtraTopping {
   id: number;
@@ -37,7 +31,6 @@ export default function MenuEditor() {
   const [feteerTypes, setFeteerTypes] = useState<MenuItem[]>([]);
   const [sweetTypes, setSweetTypes] = useState<MenuItem[]>([]);
   const [meatTypes, setMeatTypes] = useState<MeatType[]>([]);
-  const [cheeseTypes, setCheeseTypes] = useState<CheeseType[]>([]);
   const [extraToppings, setExtraToppings] = useState<ExtraTopping[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('feteer');
@@ -54,7 +47,6 @@ export default function MenuEditor() {
         setFeteerTypes(data.feteerTypes || []);
         setSweetTypes(data.sweetTypes || []);
         setMeatTypes(data.meatTypes || []);
-        setCheeseTypes(data.cheeseTypes || []);
         setExtraToppings(data.extraToppings || []);
       }
     } catch (error) {

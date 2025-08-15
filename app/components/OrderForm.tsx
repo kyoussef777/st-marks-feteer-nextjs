@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 interface FeteerType {
   id: number;
@@ -16,27 +16,6 @@ interface SweetType {
   price: number;
 }
 
-interface MeatType {
-  id: number;
-  name: string;
-  name_arabic?: string;
-  price: number;
-}
-
-interface CheeseType {
-  id: number;
-  name: string;
-  name_arabic?: string;
-  price: number;
-}
-
-interface ExtraTopping {
-  id: number;
-  name: string;
-  name_arabic?: string;
-  price: number;
-  feteer_type?: string;
-}
 
 interface OrderFormProps {
   menuData: {
@@ -76,7 +55,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     price: number;
   } | null>(null);
 
-  const calculateTotalPrice = useCallback(() => {
+  // Memoize expensive calculations
+  const calculatedPrice = useMemo(() => {
     let price = 0;
 
     if (formData.item_type === 'feteer') {
@@ -105,14 +85,15 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       });
     }
 
-    setTotalPrice(price);
+    return price;
   }, [formData, menuData]);
 
+  // Update state when calculation changes
   useEffect(() => {
-    calculateTotalPrice();
-  }, [formData, menuData, calculateTotalPrice]);
+    setTotalPrice(calculatedPrice);
+  }, [calculatedPrice]);
 
-  const handleItemTypeChange = (itemType: 'feteer' | 'sweet') => {
+  const handleItemTypeChange = useCallback((itemType: 'feteer' | 'sweet') => {
     setFormData(prev => ({
       ...prev,
       item_type: itemType,
@@ -126,9 +107,9 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     
     setShowMeatOptions(false);
     setShowExtraToppings(false);
-  };
+  }, []);
 
-  const handleFeteerTypeChange = (feteerType: string) => {
+  const handleFeteerTypeChange = useCallback((feteerType: string) => {
     setFormData(prev => ({
       ...prev,
       feteer_type: feteerType,
@@ -139,9 +120,9 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
 
     setShowMeatOptions(feteerType === 'Mixed Meat');
     setShowExtraToppings(feteerType === 'Sweet (Custard and Sugar)');
-  };
+  }, []);
 
-  const handleSweetQuantityChange = (sweetName: string, quantity: number) => {
+  const handleSweetQuantityChange = useCallback((sweetName: string, quantity: number) => {
     setFormData(prev => ({
       ...prev,
       sweet_selections: {
@@ -149,11 +130,11 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         [sweetName]: Math.max(0, quantity)
       }
     }));
-  };
+  }, []);
 
-  const getTotalSweetQuantity = () => {
+  const totalSweetQuantity = useMemo(() => {
     return Object.values(formData.sweet_selections).reduce((sum, qty) => sum + qty, 0);
-  };
+  }, [formData.sweet_selections]);
 
   const handleMeatSelection = (meatName: string, isAdditional = false) => {
     const field = isAdditional ? 'additional_meat_selection' : 'meat_selection';
@@ -186,7 +167,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       return;
     }
     
-    if (formData.item_type === 'sweet' && getTotalSweetQuantity() === 0) {
+    if (formData.item_type === 'sweet' && totalSweetQuantity === 0) {
       alert('Please select at least one sweet');
       return;
     }
@@ -327,7 +308,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           <div>
             <button
               type="submit"
-              disabled={!formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && getTotalSweetQuantity() === 0)}
+              disabled={!formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && totalSweetQuantity === 0)}
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 rounded-lg font-bold transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="text-center">
@@ -409,8 +390,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
               Sweet Types & Quantities / أنواع الحلوى والكميات
-              {getTotalSweetQuantity() > 0 && (
-                <span className="ml-2 text-orange-600 font-bold text-xs sm:text-sm">({getTotalSweetQuantity()} items)</span>
+              {totalSweetQuantity > 0 && (
+                <span className="ml-2 text-orange-600 font-bold text-xs sm:text-sm">({totalSweetQuantity} items)</span>
               )}
             </label>
             <div className="space-y-2 sm:space-y-3">

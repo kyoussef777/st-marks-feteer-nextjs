@@ -28,9 +28,30 @@ export default function Home() {
 
     initializeApp();
     
-    // Set up auto-refresh
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+    // Set up intelligent auto-refresh with exponential backoff
+    let pollInterval = 5000; // Start with 5 seconds
+    let consecutiveErrors = 0;
+    
+    const smartPoll = async () => {
+      try {
+        await fetchOrders();
+        consecutiveErrors = 0;
+        pollInterval = Math.max(5000, pollInterval - 1000); // Reduce interval on success
+      } catch (error) {
+        consecutiveErrors++;
+        pollInterval = Math.min(30000, pollInterval + (consecutiveErrors * 2000)); // Increase on error
+        console.error('Polling error:', error);
+      }
+    };
+    
+    const scheduleNextPoll = () => {
+      return setTimeout(() => {
+        smartPoll().then(scheduleNextPoll);
+      }, pollInterval);
+    };
+    
+    const timeoutId = scheduleNextPoll();
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const fetchMenuData = async () => {

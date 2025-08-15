@@ -121,7 +121,7 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
     try {
       const selections = JSON.parse(sweetSelections);
       return Object.entries(selections)
-        .filter(([_, quantity]) => (quantity as number) > 0)
+        .filter(([, quantity]) => (quantity as number) > 0)
         .map(([sweetName, quantity]) => `${sweetName} (${quantity})`)
         .join(', ');
     } catch (error) {

@@ -2,11 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById } from '@/lib/database-hybrid';
 import jsPDF from 'jspdf';
 
+interface OrderWithSweets {
+  id: number;
+  customer_name: string;
+  item_type: string;
+  feteer_type?: string | null;
+  sweet_type?: string | null;
+  sweet_selections?: string | null;
+  meat_selection?: string | null;
+  cheese_selection?: string | null;
+  has_cheese?: boolean;
+  extra_nutella?: boolean;
+  notes?: string | null;
+  status: string;
+  created_at: Date;
+  price?: number;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     
-    const order = await getOrderById(parseInt(id));
+    const orderData = await getOrderById(parseInt(id));
+    const order = orderData as OrderWithSweets;
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
@@ -103,16 +121,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     let itemText = '';
     
     if (order.item_type === 'sweet') {
-      if ((order as any).sweet_selections) {
+      if (order.sweet_selections) {
         // Handle multiple sweets
         try {
-          const sweetSelections = JSON.parse((order as any).sweet_selections);
-          const sweetsList = Object.entries(sweetSelections)
-            .filter(([_, quantity]) => (quantity as number) > 0)
+          const sweetSelections = JSON.parse(order.sweet_selections);
+          const sweetsList = Object.entries(sweetSelections as Record<string, number>)
+            .filter(([, quantity]) => quantity > 0)
             .map(([sweetName, quantity]) => `${sanitizeText(sweetName)} (${quantity})`)
             .join(', ');
           itemText = `SWEETS: ${sweetsList}`;
-        } catch (error) {
+        } catch {
           itemText = `SWEET: ${sanitizeText(order.sweet_type || 'Multiple Items')}`;
         }
       } else {
@@ -147,19 +165,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (order.item_type === 'sweet') {
       pdf.setFont('helvetica', 'bold');
       
-      if ((order as any).sweet_selections) {
+      if (order.sweet_selections) {
         try {
-          const sweetSelections = JSON.parse((order as any).sweet_selections);
-          const totalItems = Object.values(sweetSelections).reduce((sum: number, qty: any) => sum + qty, 0);
+          const sweetSelections = JSON.parse(order.sweet_selections);
+          const selections = sweetSelections as Record<string, number>;
+          const totalItems = Object.values(selections).reduce((sum: number, qty: number) => sum + qty, 0);
           yPos = addWrappedText(`DESSERT ORDER (${totalItems} items)`, margin, yPos, maxWidth, pdf, lineHeight);
           
           pdf.setFont('helvetica', 'normal');
-          Object.entries(sweetSelections).forEach(([sweetName, quantity]) => {
-            if ((quantity as number) > 0) {
+          Object.entries(selections).forEach(([sweetName, quantity]) => {
+            if (quantity > 0) {
               yPos = addWrappedText(`• ${sanitizeText(sweetName)}: ${quantity}`, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
             }
           });
-        } catch (error) {
+        } catch {
           yPos = addWrappedText('DESSERT ORDER', margin, yPos, maxWidth, pdf, lineHeight);
           pdf.setFont('helvetica', 'normal');
         }
@@ -209,7 +228,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Price and status at bottom
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
-    yPos = addWrappedText(`TOTAL: $${order.price.toFixed(2)}`, margin, yPos, maxWidth, pdf, lineHeight);
+    yPos = addWrappedText(`TOTAL: $${(order.price ?? 0).toFixed(2)}`, margin, yPos, maxWidth, pdf, lineHeight);
     
     // Timestamp (converted to EST)
     pdf.setFontSize(10);

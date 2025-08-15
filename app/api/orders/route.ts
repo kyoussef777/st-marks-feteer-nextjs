@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createOrder, getAllOrders, getOrdersByStatus, getMenuConfig, getSweetTypes } from '@/lib/database-hybrid';
+import { withAuth } from '@/lib/apiAuth';
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request) => {
   try {
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status');
@@ -26,9 +27,9 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request) => {
   try {
     const body = await request.json();
     
@@ -117,4 +118,4 @@ export async function POST(request: NextRequest) {
     console.error('Error creating order:', error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
-}
+});

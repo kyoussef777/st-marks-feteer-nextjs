@@ -125,18 +125,6 @@ export default function OrdersPage() {
     return `${Math.floor(diffHours / 24)}d`;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
-  };
 
   const filteredOrders = orders.filter(order => {
     const matchesFilter = filter === 'all' || 
@@ -195,7 +183,7 @@ export default function OrdersPage() {
             ].map((filterOption) => (
               <button
                 key={filterOption.key}
-                onClick={() => setFilter(filterOption.key as any)}
+                onClick={() => setFilter(filterOption.key as 'all' | 'active' | 'pending' | 'in_progress' | 'completed')}
                 className={`px-4 py-2 rounded-lg transition-all font-medium ${
                   filter === filterOption.key
                     ? 'bg-amber-600 text-white shadow-md'

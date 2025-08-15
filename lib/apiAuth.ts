@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAuthenticated } from './auth';
+import { isAuthenticated, AuthUser } from './auth';
+
+export interface AuthenticatedRequest extends NextRequest {
+  user: AuthUser;
+}
+
+export type AuthenticatedHandler = (
+  request: AuthenticatedRequest, 
+  context?: { params: Record<string, string> }
+) => Promise<Response>;
+
+export type ApiHandler = (
+  request: NextRequest,
+  context?: { params: Record<string, string> }
+) => Promise<Response>;
 
 /**
  * Higher-order function to protect API routes with authentication
  */
-export function withAuth(handler: Function) {
-  return async (request: NextRequest, context?: any) => {
+export function withAuth(handler: AuthenticatedHandler): ApiHandler {
+  return async (request: NextRequest, context?: { params: Record<string, string> }) => {
     try {
       // Check authentication
       const user = isAuthenticated(request);
@@ -17,11 +31,12 @@ export function withAuth(handler: Function) {
         );
       }
 
-      // Add user to the request for use in the handler
-      (request as any).user = user;
+      // Create authenticated request with user
+      const authenticatedRequest = request as AuthenticatedRequest;
+      authenticatedRequest.user = user;
       
       // Call the original handler
-      return await handler(request, context);
+      return await handler(authenticatedRequest, context);
     } catch (error) {
       console.error('Auth middleware error:', error);
       return NextResponse.json(
@@ -35,7 +50,7 @@ export function withAuth(handler: Function) {
 /**
  * Simple auth check for use in API routes
  */
-export function checkAuth(request: NextRequest): { user: any; error?: NextResponse } {
+export function checkAuth(request: NextRequest): { user: AuthUser | null; error?: NextResponse } {
   try {
     const user = isAuthenticated(request);
     
