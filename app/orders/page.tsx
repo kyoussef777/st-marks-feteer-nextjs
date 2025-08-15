@@ -37,7 +37,9 @@ export default function OrdersPage() {
       const response = await fetch('/api/orders');
       if (response.ok) {
         const data = await response.json();
-        setOrders(data);
+        // Filter to show only feteer orders
+        const feteerOrders = data.filter((order: Order) => order.item_type === 'feteer');
+        setOrders(feteerOrders);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -172,10 +174,10 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">
-          Current Orders
+          Feteer Orders
         </h1>
         <p className="font-arabic-heading">
-          الطلبات الحالية - فطير وحلويات
+          طلبات الفطير - الفطير فقط
         </p>
       </div>
 

@@ -100,9 +100,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Item type and name - with wrapping
     pdf.setFontSize(14);
-    const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
-    const itemType = order.item_type === 'sweet' ? 'SWEET' : 'FETEER';
-    const itemText = `${itemType}: ${sanitizeText(itemName || '')}`;
+    let itemText = '';
+    
+    if (order.item_type === 'sweet') {
+      if ((order as any).sweet_selections) {
+        // Handle multiple sweets
+        try {
+          const sweetSelections = JSON.parse((order as any).sweet_selections);
+          const sweetsList = Object.entries(sweetSelections)
+            .filter(([_, quantity]) => (quantity as number) > 0)
+            .map(([sweetName, quantity]) => `${sanitizeText(sweetName)} (${quantity})`)
+            .join(', ');
+          itemText = `SWEETS: ${sweetsList}`;
+        } catch (error) {
+          itemText = `SWEET: ${sanitizeText(order.sweet_type || 'Multiple Items')}`;
+        }
+      } else {
+        itemText = `SWEET: ${sanitizeText(order.sweet_type || '')}`;
+      }
+    } else {
+      itemText = `FETEER: ${sanitizeText(order.feteer_type || '')}`;
+    }
+    
     yPos = addWrappedText(itemText, margin, yPos, maxWidth, pdf, lineHeight);
     yPos += lineHeight * 0.5;
 
@@ -127,8 +146,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Sweet-specific details
     if (order.item_type === 'sweet') {
       pdf.setFont('helvetica', 'bold');
-      yPos = addWrappedText('DESSERT ORDER', margin, yPos, maxWidth, pdf, lineHeight);
-      pdf.setFont('helvetica', 'normal');
+      
+      if ((order as any).sweet_selections) {
+        try {
+          const sweetSelections = JSON.parse((order as any).sweet_selections);
+          const totalItems = Object.values(sweetSelections).reduce((sum: number, qty: any) => sum + qty, 0);
+          yPos = addWrappedText(`DESSERT ORDER (${totalItems} items)`, margin, yPos, maxWidth, pdf, lineHeight);
+          
+          pdf.setFont('helvetica', 'normal');
+          Object.entries(sweetSelections).forEach(([sweetName, quantity]) => {
+            if ((quantity as number) > 0) {
+              yPos = addWrappedText(`• ${sanitizeText(sweetName)}: ${quantity}`, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
+            }
+          });
+        } catch (error) {
+          yPos = addWrappedText('DESSERT ORDER', margin, yPos, maxWidth, pdf, lineHeight);
+          pdf.setFont('helvetica', 'normal');
+        }
+      } else {
+        yPos = addWrappedText('DESSERT ORDER', margin, yPos, maxWidth, pdf, lineHeight);
+        pdf.setFont('helvetica', 'normal');
+      }
+      
       yPos += lineHeight * 0.5;
     }
 

@@ -55,6 +55,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     item_type: 'feteer' as 'feteer' | 'sweet',
     feteer_type: '',
     sweet_type: '',
+    sweet_selections: {} as Record<string, number>, // sweet name -> quantity
     meat_selection: [] as string[],
     additional_meat_selection: [] as string[],
     has_cheese: true,
@@ -95,13 +96,13 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         price += 2.0;
       }
     } else if (formData.item_type === 'sweet') {
-      // Base sweet price
-      const selectedSweet = menuData.sweetTypes.find(
-        s => s.item_name === formData.sweet_type
-      );
-      if (selectedSweet) {
-        price += selectedSweet.price;
-      }
+      // Calculate total for multiple sweets
+      Object.entries(formData.sweet_selections).forEach(([sweetName, quantity]) => {
+        const sweet = menuData.sweetTypes.find(s => s.item_name === sweetName);
+        if (sweet && quantity > 0) {
+          price += sweet.price * quantity;
+        }
+      });
     }
 
     setTotalPrice(price);
@@ -117,6 +118,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       item_type: itemType,
       feteer_type: '',
       sweet_type: '',
+      sweet_selections: {},
       meat_selection: [],
       additional_meat_selection: [],
       extra_nutella: false
@@ -139,11 +141,18 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     setShowExtraToppings(feteerType === 'Sweet (Custard and Sugar)');
   };
 
-  const handleSweetTypeChange = (sweetType: string) => {
+  const handleSweetQuantityChange = (sweetName: string, quantity: number) => {
     setFormData(prev => ({
       ...prev,
-      sweet_type: sweetType
+      sweet_selections: {
+        ...prev.sweet_selections,
+        [sweetName]: Math.max(0, quantity)
+      }
     }));
+  };
+
+  const getTotalSweetQuantity = () => {
+    return Object.values(formData.sweet_selections).reduce((sum, qty) => sum + qty, 0);
   };
 
   const handleMeatSelection = (meatName: string, isAdditional = false) => {
@@ -177,8 +186,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       return;
     }
     
-    if (formData.item_type === 'sweet' && !formData.sweet_type) {
-      alert('Please select a sweet type');
+    if (formData.item_type === 'sweet' && getTotalSweetQuantity() === 0) {
+      alert('Please select at least one sweet');
       return;
     }
 
@@ -191,6 +200,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       const orderData = {
         ...formData,
         meat_selection: [...formData.meat_selection, ...formData.additional_meat_selection],
+        sweet_selections: formData.item_type === 'sweet' ? JSON.stringify(formData.sweet_selections) : undefined,
         status: 'pending'
       };
 
@@ -211,7 +221,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           customer_name: formData.customer_name,
           item_type: formData.item_type,
           feteer_type: formData.feteer_type || undefined,
-          sweet_type: formData.sweet_type || undefined,
+          sweet_type: formData.item_type === 'sweet' ? Object.keys(formData.sweet_selections).join(', ') : undefined,
           price: totalPrice
         });
         
@@ -224,6 +234,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           item_type: 'feteer',
           feteer_type: '',
           sweet_type: '',
+          sweet_selections: {},
           meat_selection: [],
           additional_meat_selection: [],
           has_cheese: true,
@@ -316,7 +327,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           <div>
             <button
               type="submit"
-              disabled={!formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && !formData.sweet_type)}
+              disabled={!formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && getTotalSweetQuantity() === 0)}
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 rounded-lg font-bold transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="text-center">
@@ -336,27 +347,27 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
             <button
               type="button"
               onClick={() => handleItemTypeChange('feteer')}
-              className={`p-4 border-2 rounded-lg text-center transition-all ${
+              className={`p-3 sm:p-4 border-2 rounded-lg text-center transition-all ${
                 formData.item_type === 'feteer'
                   ? 'border-amber-500 bg-amber-50 text-amber-900'
                   : 'border-gray-200 hover:border-amber-300 hover:bg-amber-25'
               }`}
             >
-              <div className="text-2xl mb-2">🥞</div>
-              <div className="font-semibold">Feteer</div>
+              <div className="text-xl sm:text-2xl mb-1 sm:mb-2">🥞</div>
+              <div className="font-semibold text-sm sm:text-base">Feteer</div>
               <div className="text-xs font-arabic text-gray-600">فطير</div>
             </button>
             <button
               type="button"
               onClick={() => handleItemTypeChange('sweet')}
-              className={`p-4 border-2 rounded-lg text-center transition-all ${
+              className={`p-3 sm:p-4 border-2 rounded-lg text-center transition-all ${
                 formData.item_type === 'sweet'
                   ? 'border-amber-500 bg-amber-50 text-amber-900'
                   : 'border-gray-200 hover:border-amber-300 hover:bg-amber-25'
               }`}
             >
-              <div className="text-2xl mb-2">🍯</div>
-              <div className="font-semibold">Sweets</div>
+              <div className="text-xl sm:text-2xl mb-1 sm:mb-2">🍯</div>
+              <div className="font-semibold text-sm sm:text-base">Sweets</div>
               <div className="text-xs font-arabic text-gray-600">حلويات</div>
             </button>
           </div>
@@ -393,33 +404,70 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           </div>
         )}
 
-        {/* Sweet Type Selection */}
+        {/* Sweet Type Selection with Quantities */}
         {formData.item_type === 'sweet' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sweet Type / نوع الحلوى
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              Sweet Types & Quantities / أنواع الحلوى والكميات
+              {getTotalSweetQuantity() > 0 && (
+                <span className="ml-2 text-orange-600 font-bold text-xs sm:text-sm">({getTotalSweetQuantity()} items)</span>
+              )}
             </label>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {menuData.sweetTypes.map((sweet) => (
-                <button
-                  key={sweet.id}
-                  type="button"
-                  onClick={() => handleSweetTypeChange(sweet.item_name)}
-                  className={`p-3 border-2 rounded-lg text-center transition-all ${
-                    formData.sweet_type === sweet.item_name
-                      ? 'border-orange-500 bg-orange-50 text-orange-900'
-                      : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
-                  }`}
-                >
-                  <div className="font-semibold text-sm leading-tight">{sweet.item_name}</div>
-                  <div className="text-xs text-gray-600 font-arabic mt-1">
-                    {sweet.item_name_arabic}
+            <div className="space-y-2 sm:space-y-3">
+              {menuData.sweetTypes.map((sweet) => {
+                const quantity = formData.sweet_selections[sweet.item_name] || 0;
+                return (
+                  <div
+                    key={sweet.id}
+                    className={`p-3 border-2 rounded-lg transition-all ${
+                      quantity > 0
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-orange-300'
+                    }`}
+                  >
+                    {/* Mobile: Stack vertically, Desktop: Side by side */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                      <div className="flex-1">
+                        <div className="font-semibold text-xs sm:text-sm leading-tight">{sweet.item_name}</div>
+                        <div className="text-xs text-gray-600 font-arabic mt-1">
+                          {sweet.item_name_arabic}
+                        </div>
+                        <div className="text-sm sm:text-lg font-bold text-orange-600 mt-1">
+                          ${sweet.price.toFixed(2)} each
+                        </div>
+                      </div>
+                      
+                      {/* Quantity Controls */}
+                      <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-2 sm:ml-3">
+                        <button
+                          type="button"
+                          onClick={() => handleSweetQuantityChange(sweet.item_name, quantity - 1)}
+                          disabled={quantity <= 0}
+                          className="w-8 h-8 sm:w-8 sm:h-8 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-bold text-sm"
+                        >
+                          −
+                        </button>
+                        <span className="w-8 text-center font-bold text-lg">{quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleSweetQuantityChange(sweet.item_name, quantity + 1)}
+                          className="w-8 h-8 sm:w-8 sm:h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center font-bold text-sm"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {quantity > 0 && (
+                      <div className="mt-2 pt-2 border-t border-orange-200">
+                        <div className="text-xs sm:text-sm font-bold text-orange-800">
+                          Subtotal: ${(sweet.price * quantity).toFixed(2)}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-lg font-bold text-orange-600 mt-1">
-                    ${sweet.price.toFixed(2)}
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -496,7 +544,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Extra Meats (+$2.00) / لحوم إضافية
                   </label>
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                     {menuData.meatTypes.map((meat) => (
                       <button
                         key={`additional-${meat.id}`}
@@ -520,11 +568,11 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         )}
 
         {/* Bottom Row: Extra Toppings and Notes */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
           {/* Extra Toppings */}
           {showExtraToppings && (
             <div className="bg-orange-50 rounded-lg p-3">
-              <h3 className="text-sm font-semibold text-orange-900 mb-2">
+              <h3 className="text-xs sm:text-sm font-semibold text-orange-900 mb-2">
                 Extra Toppings / إضافات
               </h3>
               <div className="space-y-1">
@@ -558,14 +606,14 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
 
           {/* Notes */}
           <div className={showExtraToppings ? '' : 'lg:col-span-2'}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Special Notes / ملاحظات خاصة
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-xs sm:text-sm"
+              rows={3}
               placeholder="Any special instructions..."
             />
           </div>

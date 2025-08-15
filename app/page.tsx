@@ -67,22 +67,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-      <div className="container mx-auto px-4 py-4">
-        <div className="grid lg:grid-cols-4 gap-4 lg:gap-4 h-[calc(100vh-2rem)]">
-          {/* Order Form - Takes 3/4 of the space */}
-          <div className="order-1 lg:order-1 lg:col-span-3 overflow-y-auto">
+      <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
+        {/* Mobile: Stack vertically, Desktop: Side by side */}
+        <div className="flex flex-col lg:grid lg:grid-cols-4 gap-3 lg:gap-4 min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)]">
+          {/* Order Form - Mobile: Full width, Desktop: 3/4 */}
+          <div className="order-1 lg:col-span-3 flex-1 lg:overflow-y-auto">
             <OrderForm 
               menuData={menuData} 
               onOrderCreated={handleOrderCreated}
             />
           </div>
 
-          {/* Orders List - Takes 1/4 of the space */}
-          <div className="order-2 lg:order-2 lg:col-span-1 overflow-y-auto">
-            <OrdersList 
-              orders={orders} 
-              onOrderUpdate={handleOrderUpdate}
-            />
+          {/* Orders List - Mobile: Below form, Desktop: 1/4 sidebar */}
+          <div className="order-2 lg:col-span-1 lg:overflow-y-auto">
+            <div className="lg:sticky lg:top-4">
+              <OrdersList 
+                orders={orders} 
+                onOrderUpdate={handleOrderUpdate}
+              />
+            </div>
           </div>
         </div>
       </div>

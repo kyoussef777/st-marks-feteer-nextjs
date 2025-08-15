@@ -6,6 +6,7 @@ export const orders = pgTable('orders', {
   item_type: text('item_type').notNull().default('feteer'),
   feteer_type: text('feteer_type'),
   sweet_type: text('sweet_type'),
+  sweet_selections: text('sweet_selections'), // JSON string for multiple sweets with quantities
   meat_selection: text('meat_selection'),
   cheese_selection: text('cheese_selection'),
   has_cheese: boolean('has_cheese').default(true),

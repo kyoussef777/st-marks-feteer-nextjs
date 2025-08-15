@@ -8,6 +8,13 @@
       "when": 1755131765985,
       "tag": "0000_spicy_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755213856014,
+      "tag": "0001_workable_microchip",
+      "breakpoints": true
     }
   ]
 }

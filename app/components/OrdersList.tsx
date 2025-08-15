@@ -6,6 +6,7 @@ interface Order {
   item_type: 'feteer' | 'sweet';
   feteer_type?: string;
   sweet_type?: string;
+  sweet_selections?: string; // JSON string for multiple sweets
   meat_selection?: string;
   has_cheese: boolean;
   extra_nutella: boolean;
@@ -114,6 +115,21 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
     return date.toLocaleDateString();
   };
 
+  const formatSweetSelections = (sweetSelections: string | undefined) => {
+    if (!sweetSelections) return null;
+    
+    try {
+      const selections = JSON.parse(sweetSelections);
+      return Object.entries(selections)
+        .filter(([_, quantity]) => (quantity as number) > 0)
+        .map(([sweetName, quantity]) => `${sweetName} (${quantity})`)
+        .join(', ');
+    } catch (error) {
+      console.error('Error parsing sweet selections:', error);
+      return sweetSelections;
+    }
+  };
+
   if (orders.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-4 text-center">
@@ -157,7 +173,12 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
                 {order.item_type === 'feteer' ? '🥞' : '🍯'}
               </span>
               <div className="text-sm font-semibold text-gray-800">
-                {order.item_type === 'feteer' ? order.feteer_type : order.sweet_type}
+                {order.item_type === 'feteer' 
+                  ? order.feteer_type 
+                  : order.sweet_selections 
+                    ? formatSweetSelections(order.sweet_selections) || 'Multiple Sweets'
+                    : order.sweet_type
+                }
               </div>
             </div>
             

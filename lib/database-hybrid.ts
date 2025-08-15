@@ -127,6 +127,7 @@ export async function createOrder(order: Omit<NeonNewOrder, 'id' | 'created_at'>
       item_type: order.item_type,
       feteer_type: order.feteer_type || null,
       sweet_type: order.sweet_type || null,
+      sweet_selections: (order as any).sweet_selections || null,
       meat_selection: order.meat_selection || null,
       cheese_selection: order.cheese_selection || null,
       has_cheese: order.has_cheese,

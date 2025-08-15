@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Feteer type is required for feteer orders' }, { status: 400 });
     }
 
-    if (body.item_type === 'sweet' && !body.sweet_type) {
-      return NextResponse.json({ error: 'Sweet type is required for sweet orders' }, { status: 400 });
+    if (body.item_type === 'sweet' && !body.sweet_type && !body.sweet_selections) {
+      return NextResponse.json({ error: 'Sweet type or sweet selections are required for sweet orders' }, { status: 400 });
     }
 
     // Calculate price based on selections
@@ -66,11 +66,30 @@ export async function POST(request: NextRequest) {
         price += 2.0;
       }
     } else if (body.item_type === 'sweet') {
-      // Get sweet price
       const sweetTypes = await getSweetTypes();
-      const selectedSweet = sweetTypes.find(s => s.item_name === body.sweet_type);
-      if (selectedSweet && selectedSweet.price) {
-        price += selectedSweet.price;
+      
+      if (body.sweet_selections) {
+        // Handle multiple sweet selections
+        try {
+          const sweetSelections = typeof body.sweet_selections === 'string' 
+            ? JSON.parse(body.sweet_selections) 
+            : body.sweet_selections;
+          
+          Object.entries(sweetSelections).forEach(([sweetName, quantity]) => {
+            const sweet = sweetTypes.find(s => s.item_name === sweetName);
+            if (sweet && sweet.price && typeof quantity === 'number' && quantity > 0) {
+              price += sweet.price * quantity;
+            }
+          });
+        } catch (error) {
+          console.error('Error parsing sweet_selections:', error);
+        }
+      } else if (body.sweet_type) {
+        // Handle single sweet selection (backward compatibility)
+        const selectedSweet = sweetTypes.find(s => s.item_name === body.sweet_type);
+        if (selectedSweet && selectedSweet.price) {
+          price += selectedSweet.price;
+        }
       }
     }
 
@@ -79,6 +98,7 @@ export async function POST(request: NextRequest) {
       item_type: body.item_type,
       feteer_type: body.feteer_type || null,
       sweet_type: body.sweet_type || null,
+      sweet_selections: body.sweet_selections || null,
       meat_selection: body.meat_selection ? 
         (Array.isArray(body.meat_selection) ? body.meat_selection.join(',') : body.meat_selection) : 
         null,
