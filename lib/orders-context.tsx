@@ -101,8 +101,12 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
       setAllOrders(prev => [newOrder, ...prev]);
       setLastUpdated(Date.now());
       
-      // Background refresh to ensure consistency (no loading state)
-      refreshOrders(false);
+      // Delayed background refresh to ensure consistency (avoid race conditions)
+      setTimeout(() => {
+        if (mounted.current) {
+          refreshOrders(false);
+        }
+      }, 1000);
       
       return newOrder;
     } catch (error) {

@@ -63,7 +63,8 @@ export default function Home() {
 
   const handleOrderCreated = async (orderData: Record<string, unknown>) => {
     try {
-      await createOrder(orderData);
+      const newOrder = await createOrder(orderData);
+      return newOrder;
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;

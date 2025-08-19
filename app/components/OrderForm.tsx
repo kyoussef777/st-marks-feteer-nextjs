@@ -26,7 +26,7 @@ interface OrderFormProps {
     cheeseTypes: CheeseType[];
     extraToppings: ExtraTopping[];
   };
-  onOrderCreated: (orderData: Record<string, unknown>) => Promise<void>;
+  onOrderCreated: (orderData: Record<string, unknown>) => Promise<{ id: number; [key: string]: unknown }>;
 }
 
 export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) {
@@ -191,7 +191,14 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       };
 
       // Use the context method to create order
+      console.log('OrderForm: Creating order with data:', orderData);
       const newOrder = await onOrderCreated(orderData);
+      console.log('OrderForm: Order created successfully:', newOrder);
+      
+      // Validate the returned order
+      if (!newOrder || !newOrder.id) {
+        throw new Error('Invalid order response: missing order ID');
+      }
       
       // Set the new order data for the popup
       setNewOrderData({
@@ -223,7 +230,28 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       setShowExtraToppings(false);
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Failed to place order. Please try again.');
+      
+      // More specific error messaging
+      let errorMessage = 'Failed to place order. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication')) {
+          errorMessage = 'Please refresh the page and log in again.';
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('validation') || error.message.includes('required')) {
+          errorMessage = 'Please check all required fields and try again.';
+        } else if (error.message.includes('Invalid order response')) {
+          errorMessage = 'Order may have been created. Please check the orders list and refresh if needed.';
+        }
+      }
+      
+      // Additional check: if error contains successful creation indicators but still failed
+      const errorString = error?.toString() || '';
+      if (errorString.includes('created') || errorString.includes('success')) {
+        errorMessage = 'Order was likely created successfully. Please check the orders list.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setSubmitting(false);
     }

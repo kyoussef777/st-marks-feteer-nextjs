@@ -274,7 +274,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="label-${id}.pdf"`,
-        'X-Auto-Print': 'true', // Custom header to trigger auto-print
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
 

@@ -95,13 +95,38 @@ export default function OrdersList({ orders }: OrdersListProps) {
       
       // Open the PDF label in a new window
       const labelUrl = `/api/orders/${orderId}/label`;
-      const printWindow = window.open(labelUrl, '_blank');
+      const printWindow = window.open(labelUrl, '_blank', 'width=800,height=600');
       
       if (printWindow) {
-        // Wait for the PDF to load, then trigger print
+        // Wait for the PDF to load, then trigger print and auto-close
         printWindow.onload = () => {
           setTimeout(() => {
             printWindow.print();
+            
+            // Auto-close after printing with multiple fallback methods
+            setTimeout(() => {
+              try {
+                printWindow.close();
+              } catch {
+                console.log('Auto-close blocked by browser, window will remain open');
+              }
+            }, 2000); // 2 seconds delay to ensure print dialog has appeared
+            
+            // Listen for print events to close immediately after printing
+            printWindow.addEventListener('afterprint', () => {
+              setTimeout(() => {
+                try {
+                  printWindow.close();
+                } catch {
+                  console.log('Auto-close blocked by browser');
+                }
+              }, 500);
+            });
+            
+            // Fallback: Focus back to main window
+            setTimeout(() => {
+              window.focus();
+            }, 3000);
           }, 1000);
         };
       } else {
