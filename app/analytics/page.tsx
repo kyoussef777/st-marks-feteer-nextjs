@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Order } from '@/types';
+// Order type now available through context
 import { Line } from 'react-chartjs-2';
 import { toZonedTime, format } from 'date-fns-tz';
+import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
+import { useOrders } from '@/lib/orders-context';
+import { dataSync } from '@/lib/data-sync';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -36,50 +39,64 @@ interface Analytics {
 }
 
 export default function AnalyticsPage() {
+  const { allOrders, loading: ordersLoading } = useOrders();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [allOrders, setAllOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     fetchAnalytics();
-    fetchAllOrders();
+    
+    // Periodic refresh for analytics (less frequent)
+    const interval = setInterval(() => {
+      fetchAnalytics(true);
+    }, 60000); // Every minute
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (isRefresh = false) => {
     try {
-      const response = await fetch('/api/analytics?days=1');
-      if (response.ok) {
-        const data = await response.json();
-        setAnalytics(data);
+      if (isRefresh) {
+        setRefreshing(true);
       }
+      // Fetch 7-day analytics data using centralized function
+      const data = await dataSync.fetchAnalytics(7);
+      setAnalytics(data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAllOrders = async () => {
-    try {
-      const response = await fetch('/api/orders');
-      if (response.ok) {
-        const data = await response.json();
-        setAllOrders(data);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching all orders:', error);
     }
   };
 
-  const downloadCSV = (itemType: string) => {
-    const url = `/api/orders/export?format=csv&item_type=${itemType}`;
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `orders-${itemType}-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Remove fetchAllOrders - now using context
+
+  const downloadCSV = async (itemType: string) => {
+    try {
+      setExportLoading(true);
+      const url = `/api/orders/export?format=csv&item_type=${itemType}`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `orders-${itemType}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      alert('Failed to download CSV. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const formatSweetSelections = (sweetSelections: string | undefined) => {
@@ -99,11 +116,15 @@ export default function AnalyticsPage() {
     return format(toZonedTime(new Date(dateString), 'America/New_York'), 'MMM d, yyyy h:mm a', { timeZone: 'America/New_York' });
   };
 
-  if (loading) {
+  if (loading || ordersLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
-          <div className="text-xl text-gray-600">Loading analytics...</div>
+          <LoadingSpinner 
+            size="xl" 
+            message="Loading analytics dashboard..." 
+            messageAr="جاري تحميل لوحة التحليلات..."
+          />
         </div>
       </div>
     );
@@ -135,11 +156,12 @@ export default function AnalyticsPage() {
       <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
         <div className="flex bg-white rounded-lg shadow-md p-1">
           <button
-            className="bg-amber-600 text-white shadow-md px-4 sm:px-6 py-2 rounded-md"
+            className="bg-amber-600 text-white shadow-md px-4 sm:px-6 py-2 rounded-md flex items-center gap-2"
           >
+            {refreshing && <ButtonSpinner className="w-3 h-3" />}
             <div className="text-center">
-              <div className="text-sm sm:text-base">Today</div>
-              <div className="font-arabic text-xs sm:text-sm">اليوم</div>
+              <div className="text-sm sm:text-base">Last 7 Days</div>
+              <div className="font-arabic text-xs sm:text-sm">آخر 7 أيام</div>
             </div>
           </button>
         </div>
@@ -173,21 +195,24 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col sm:flex-row gap-2 mb-3 sm:mb-4">
                   <button
                     onClick={() => downloadCSV('all')}
-                    className="bg-blue-600 text-white px-3 py-2 text-xs sm:text-sm rounded hover:bg-blue-700 transition-colors flex-1"
+                    disabled={exportLoading}
+                    className="bg-blue-600 text-white px-3 py-2 text-xs sm:text-sm rounded hover:bg-blue-700 transition-colors flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                   >
-                    📊 All Orders CSV
+                    {exportLoading ? <ButtonSpinner className="w-3 h-3" /> : '📊'} All Orders CSV
                   </button>
                   <button
                     onClick={() => downloadCSV('feteer')}
-                    className="bg-amber-600 text-white px-3 py-2 text-xs sm:text-sm rounded hover:bg-amber-700 transition-colors flex-1"
+                    disabled={exportLoading}
+                    className="bg-amber-600 text-white px-3 py-2 text-xs sm:text-sm rounded hover:bg-amber-700 transition-colors flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                   >
-                    🥞 Feteer Only CSV
+                    {exportLoading ? <ButtonSpinner className="w-3 h-3" /> : '🥞'} Feteer Only CSV
                   </button>
                   <button
                     onClick={() => downloadCSV('sweet')}
-                    className="bg-pink-600 text-white px-3 py-2 text-xs sm:text-sm rounded hover:bg-pink-700 transition-colors flex-1"
+                    disabled={exportLoading}
+                    className="bg-pink-600 text-white px-3 py-2 text-xs sm:text-sm rounded hover:bg-pink-700 transition-colors flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                   >
-                    🍯 Sweets Only CSV
+                    {exportLoading ? <ButtonSpinner className="w-3 h-3" /> : '🍯'} Sweets Only CSV
                   </button>
                 </div>
                 
@@ -203,10 +228,9 @@ export default function AnalyticsPage() {
                             <div className="text-xs text-gray-600">{formatDateTime(order.created_at)}</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold text-sm">${order.price.toFixed(2)}</div>
+                            <div className="font-bold text-sm">${(order.price || 0).toFixed(2)}</div>
                             <span className={`px-2 py-1 rounded text-xs ${
-                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'ordered' ? 'bg-blue-100 text-blue-800' :
                               'bg-green-100 text-green-800'
                             }`}>
                               {order.status.replace('_', ' ')}
@@ -274,14 +298,13 @@ export default function AnalyticsPage() {
                                 : order.sweet_type
                             }
                           </td>
-                          <td className="px-2 py-2 font-medium">${order.price.toFixed(2)}</td>
+                          <td className="px-2 py-2 font-medium">${(order.price || 0).toFixed(2)}</td>
                           <td className="px-2 py-2">
                             <span className={`px-1 py-1 rounded text-xs ${
-                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'ordered' ? 'bg-blue-100 text-blue-800' :
                               'bg-green-100 text-green-800'
                             }`}>
-                              {order.status === 'pending' ? 'P' : order.status === 'in_progress' ? 'IP' : 'C'}
+                              {order.status === 'ordered' ? 'O' : 'C'}
                             </span>
                           </td>
                           <td className="px-2 py-2 text-xs text-gray-600 hidden lg:table-cell">
@@ -299,7 +322,7 @@ export default function AnalyticsPage() {
                 </div>
                 
                 <div className="mt-3 sm:mt-4 text-xs text-gray-500 text-center">
-                  Total: {allOrders.length} orders • Revenue: ${allOrders.reduce((sum, order) => sum + order.price, 0).toFixed(2)}
+                  Total: {allOrders.length} orders • Revenue: ${allOrders.reduce((sum, order) => sum + (order.price || 0), 0).toFixed(2)}
                 </div>
               </div>
             </div>
@@ -405,14 +428,13 @@ export default function AnalyticsPage() {
             {Object.entries(analytics.statusBreakdown).map(([status, count]) => {
               const percentage = (count / analytics.totalOrders * 100).toFixed(1);
               const colors = {
-                pending: 'bg-yellow-500',
-                in_progress: 'bg-blue-500',
+                ordered: 'bg-blue-500',
                 completed: 'bg-green-500'
               };
               
               return (
                 <div key={status} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium text-gray-900 capitalize">{status.replace('_', ' ')}</span>
+                  <span className="font-medium text-gray-900 capitalize">{status === 'ordered' ? 'Ordered' : 'Completed'}</span>
                   <div className="flex items-center">
                     <div className="w-24 bg-gray-200 rounded-full h-2 mr-3">
                       <div 

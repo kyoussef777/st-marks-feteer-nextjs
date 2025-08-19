@@ -11,9 +11,11 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
+  error: string | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,22 +35,39 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hasRedirected, setHasRedirected] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  
+  const clearError = () => setError(null);
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/check');
+      setError(null);
+      
+      const response = await fetch('/api/auth/check', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        setError(null);
       } else {
         setUser(null);
+        if (response.status === 401) {
+          // Token expired or invalid
+          console.log('Auth token expired or invalid');
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
+      setError('Authentication check failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +75,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      setError(null);
+      setIsLoading(true);
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -67,25 +89,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        setError(null);
         return true;
       } else {
+        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+        setError(errorData.error || 'Invalid credentials');
         return false;
       }
     } catch (error) {
       console.error('Login failed:', error);
+      setError('Login failed. Please check your connection and try again.');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
     try {
+      setError(null);
       await fetch('/api/auth/logout', {
         method: 'POST',
       });
     } catch (error) {
       console.error('Logout failed:', error);
+      // Don't show error for logout failures
     } finally {
       setUser(null);
+      setError(null);
       router.push('/login');
     }
   };
@@ -136,9 +167,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value = {
     user,
     isLoading,
+    error,
     login,
     logout,
     checkAuth,
+    clearError,
   };
 
   return (

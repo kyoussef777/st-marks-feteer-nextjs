@@ -22,11 +22,38 @@ interface OrderWithSweets {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const orderId = parseInt(id);
     
-    const orderData = await getOrderById(parseInt(id));
-    const order = orderData as OrderWithSweets;
+    if (isNaN(orderId)) {
+      return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 });
+    }
+    
+    // Try multiple times to get the order (in case of timing issues)
+    let order: OrderWithSweets | undefined;
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    while (!order && attempts < maxAttempts) {
+      try {
+        const orderData = await getOrderById(orderId);
+        order = orderData as OrderWithSweets;
+        
+        if (order) {
+          break;
+        }
+      } catch (dbError) {
+        console.warn(`Database query attempt ${attempts + 1} failed:`, dbError);
+      }
+      
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 100 * attempts));
+      }
+    }
 
     if (!order) {
+      console.error(`Order ${orderId} not found after ${maxAttempts} attempts`);
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 

@@ -14,7 +14,7 @@ export interface Order {
   extra_nutella?: boolean;
   notes?: string | null;
   sweet_selections?: string | null; // JSON string for multiple sweets with quantities
-  status: 'pending' | 'in_progress' | 'completed' | 'delivered';
+  status: 'ordered' | 'completed';
   order_date?: string;
   created_at?: Date;
   price?: number;
@@ -31,7 +31,7 @@ export interface CreateOrderData {
   extra_nutella?: boolean;
   notes?: string | null;
   sweet_selections?: string | null;
-  status: 'pending' | 'in_progress' | 'completed' | 'delivered';
+  status: 'ordered' | 'completed';
   price?: number;
 }
 
@@ -107,7 +107,7 @@ export interface OrderFormData {
 
 export interface AnalyticsData {
   totalOrders: number;
-  pendingOrders: number;
+  orderedOrders: number;
   completedOrders: number;
   totalRevenue: number;
   averageOrderValue: number;

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "./components/AuthProvider";
+import { OrdersProvider } from "../lib/orders-context";
 import ConditionalNavbar from "./components/ConditionalNavbar";
+import ErrorBoundary from "./components/ErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,12 +31,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
-        <AuthProvider>
-          <ConditionalNavbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <ErrorBoundary>
+              <OrdersProvider>
+                <ErrorBoundary>
+                  <ConditionalNavbar />
+                  <main className="min-h-screen">
+                    {children}
+                  </main>
+                </ErrorBoundary>
+              </OrdersProvider>
+            </ErrorBoundary>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

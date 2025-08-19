@@ -18,7 +18,7 @@ export interface Order {
   has_cheese: boolean;
   extra_nutella: boolean;
   notes?: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'ordered' | 'completed';
   price: number;
   created_at: string;
 }

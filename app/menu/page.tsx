@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface MenuItem {
   id: number;
@@ -67,7 +68,11 @@ export default function MenuEditor() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
-          <div className="text-xl text-gray-600">Loading menu data...</div>
+          <LoadingSpinner 
+            size="xl" 
+            message="Loading menu editor..." 
+            messageAr="جاري تحميل محرر القائمة..."
+          />
         </div>
       </div>
     );

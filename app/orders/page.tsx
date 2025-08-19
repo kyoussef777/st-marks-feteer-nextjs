@@ -1,97 +1,100 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toZonedTime, format } from 'date-fns-tz';
+import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
+import { useOrders } from '@/lib/orders-context';
 
-interface Order {
-  id: number;
-  customer_name: string;
-  item_type: 'feteer' | 'sweet';
-  feteer_type?: string;
-  sweet_type?: string;
-  meat_selection?: string;
-  cheese_selection?: string;
-  has_cheese: boolean;
-  extra_nutella: boolean;
-  notes?: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  price: number;
-  created_at: string;
-}
+// Order interface now imported from context
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'active' | 'pending' | 'in_progress' | 'completed'>('active');
+  const { 
+    allOrders, 
+    orderedOrders, 
+    completedOrders, 
+    loading, 
+    updateOrderStatus: contextUpdateStatus, 
+    deleteOrder: contextDeleteOrder 
+  } = useOrders();
+  const [actionLoading, setActionLoading] = useState<{ [key: number]: string }>({});
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+  const [filter, setFilter] = useState<'ordered' | 'completed'>('ordered');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Get filtered orders based on current filter - ONLY FETEER ORDERS
+  const filteredByStatus = filter === 'ordered' ? orderedOrders : completedOrders;
+  const orders = filteredByStatus.filter(order => order.item_type === 'feteer');
 
-  useEffect(() => {
-    fetchOrders();
-    // Auto-refresh every 3 seconds
-    const interval = setInterval(fetchOrders, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Remove useEffect - orders are now handled by context
 
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch('/api/orders');
-      if (response.ok) {
-        const data = await response.json();
-        // Filter to show only feteer orders
-        const feteerOrders = data.filter((order: Order) => order.item_type === 'feteer');
-        setOrders(feteerOrders);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Remove fetchOrders - now handled by context
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        fetchOrders();
-      } else {
-        alert('Failed to update order status');
-      }
+      setActionLoading(prev => ({ ...prev, [orderId]: 'updating' }));
+      await contextUpdateStatus(orderId, newStatus);
     } catch (error) {
       console.error('Error updating order status:', error);
       alert('Failed to update order status');
+    } finally {
+      setActionLoading(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [orderId]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
   const deleteOrder = async (orderId: number) => {
-    if (!confirm('Are you sure you want to delete this order?')) {
+    try {
+      setActionLoading(prev => ({ ...prev, [orderId]: 'deleting' }));
+      await contextDeleteOrder(orderId);
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Failed to delete order');
+    } finally {
+      setActionLoading(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [orderId]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const deleteAllOrders = async () => {
+    if (!confirm('Are you sure you want to delete ALL orders? This cannot be undone.')) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        fetchOrders();
-      } else {
-        alert('Failed to delete order');
-      }
+      setDeleteAllLoading(true);
+      // Delete only feteer orders
+      const feteerOrders = allOrders.filter(order => order.item_type === 'feteer');
+      const deletePromises = feteerOrders.map(order => 
+        contextDeleteOrder(order.id)
+      );
+      
+      await Promise.all(deletePromises);
+      alert('All orders deleted successfully');
     } catch (error) {
-      console.error('Error deleting order:', error);
-      alert('Failed to delete order');
+      console.error('Error deleting all orders:', error);
+      alert('Failed to delete all orders');
+    } finally {
+      setDeleteAllLoading(false);
     }
   };
 
   const printLabel = async (orderId: number) => {
     try {
+      setActionLoading(prev => ({ ...prev, [orderId]: 'printing' }));
+      
+      // First check if the order exists
+      const checkResponse = await fetch(`/api/orders/${orderId}`);
+      if (!checkResponse.ok) {
+        alert('Order not found. Please refresh and try again.');
+        return;
+      }
+      
       const labelUrl = `/api/orders/${orderId}/label`;
       const printWindow = window.open(labelUrl, '_blank');
       
@@ -107,6 +110,12 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Error printing label:', error);
       alert('Failed to print label');
+    } finally {
+      setActionLoading(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [orderId]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
@@ -127,31 +136,33 @@ export default function OrdersPage() {
 
 
   const filteredOrders = orders.filter(order => {
-    const matchesFilter = filter === 'all' || 
-                         (filter === 'active' && (order.status === 'pending' || order.status === 'in_progress')) ||
-                         order.status === filter;
     const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
     const matchesSearch = searchTerm === '' || 
       order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (itemName && itemName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       order.id.toString().includes(searchTerm);
     
-    return matchesFilter && matchesSearch;
+    return matchesSearch;
   });
 
+  // Count only feteer orders
+  const feteerOrderedOrders = orderedOrders.filter(order => order.item_type === 'feteer');
+  const feteerCompletedOrders = completedOrders.filter(order => order.item_type === 'feteer');
+  
   const orderCounts = {
-    all: orders.length,
-    active: orders.filter(o => o.status === 'pending' || o.status === 'in_progress').length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    in_progress: orders.filter(o => o.status === 'in_progress').length,
-    completed: orders.filter(o => o.status === 'completed').length
+    ordered: feteerOrderedOrders.length,
+    completed: feteerCompletedOrders.length
   };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
-          <div className="text-xl text-gray-600">Loading orders...</div>
+          <LoadingSpinner 
+            size="xl" 
+            message="Loading orders..." 
+            messageAr="جاري تحميل الطلبات..."
+          />
         </div>
       </div>
     );
@@ -162,10 +173,10 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">
-          Feteer Orders
+          All Orders
         </h1>
         <p className="font-arabic-heading">
-          طلبات الفطير - الفطير فقط
+          جميع الطلبات - فطير وحلويات
         </p>
       </div>
 
@@ -175,15 +186,12 @@ export default function OrdersPage() {
           {/* Status Filter Buttons */}
           <div className="flex flex-wrap gap-2">
             {[
-              { key: 'active', label: 'Active Orders', labelAr: 'الطلبات النشطة', icon: '🔥' },
-              { key: 'all', label: 'All Orders', labelAr: 'كل الطلبات', icon: '📋' },
-              { key: 'pending', label: 'Pending', labelAr: 'في الانتظار', icon: '⏳' },
-              { key: 'in_progress', label: 'In Progress', labelAr: 'قيد التحضير', icon: '👨‍🍳' },
+              { key: 'ordered', label: 'Ordered', labelAr: 'مطلوبة', icon: '📋' },
               { key: 'completed', label: 'Completed', labelAr: 'مكتمل', icon: '✅' }
             ].map((filterOption) => (
               <button
                 key={filterOption.key}
-                onClick={() => setFilter(filterOption.key as 'all' | 'active' | 'pending' | 'in_progress' | 'completed')}
+                onClick={() => setFilter(filterOption.key as 'ordered' | 'completed')}
                 className={`px-4 py-2 rounded-lg transition-all font-medium ${
                   filter === filterOption.key
                     ? 'bg-amber-600 text-white shadow-md'
@@ -204,18 +212,40 @@ export default function OrdersPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative w-full max-w-md">
-            <input
-              type="text"
-              placeholder="Search orders, customers, or order #..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            />
-            <div className="absolute left-3 top-2.5 text-gray-400">
-              🔍
+          {/* Search and Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-2xl">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search orders, customers, or order #..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              />
+              <div className="absolute left-3 top-2.5 text-gray-400">
+                🔍
+              </div>
             </div>
+            
+            {/* Delete All Button - Only for feteer orders */}
+            {feteerOrderedOrders.length + feteerCompletedOrders.length > 0 && (
+              <button
+                onClick={deleteAllOrders}
+                disabled={deleteAllLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {deleteAllLoading ? (
+                  <>
+                    <ButtonSpinner />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    🗑️ Delete All Feteer ({feteerOrderedOrders.length + feteerCompletedOrders.length})
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -228,9 +258,7 @@ export default function OrdersPage() {
           <p className="text-gray-500">
             {searchTerm 
               ? `No orders match your search "${searchTerm}"` 
-              : filter === 'all' 
-                ? 'No orders available' 
-                : `No ${filter.replace('_', ' ')} orders`}
+              : `No ${filter} orders`}
           </p>
         </div>
       ) : (
@@ -257,8 +285,7 @@ export default function OrdersPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' : 
-                      order.status === 'in_progress' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-green-100 text-green-800 border border-green-200'
+                      order.status === 'ordered' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-green-100 text-green-800 border border-green-200'
                     }`}>
                       {order.status.replace('_', ' ').toUpperCase()}
                     </span>
@@ -324,49 +351,110 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Action Buttons - Compact */}
-                <div className="flex flex-wrap gap-1 pt-2 border-t border-gray-100">
+                <div className="flex flex-wrap gap-3 pt-3 border-t border-gray-100">
                   {/* Status Change Buttons */}
-                  {order.status === 'pending' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'in_progress')}
-                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                    >
-                      ▶️ ابدأ الطبخ (Start Cooking)
-                    </button>
-                  )}
-                  
-                  {order.status === 'in_progress' && (
+                  {order.status === 'ordered' && (
                     <button
                       onClick={() => updateOrderStatus(order.id, 'completed')}
-                      className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                      disabled={actionLoading[order.id] === 'updating'}
+                      className="px-6 py-3 bg-green-600 text-white text-base font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      ✅ مكتمل (Complete)
+                      {actionLoading[order.id] === 'updating' ? (
+                        <>
+                          <ButtonSpinner />
+                          <div>
+                            <div>Updating...</div>
+                            <div className="font-arabic text-sm">جاري التحديث...</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span>✅</span>
+                          <div>
+                            <div>Mark Complete</div>
+                            <div className="font-arabic text-sm">إنجاز الطلب</div>
+                          </div>
+                        </>
+                      )}
                     </button>
                   )}
 
                   {order.status === 'completed' && (
                     <button
-                      onClick={() => updateOrderStatus(order.id, 'in_progress')}
-                      className="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors"
+                      onClick={() => updateOrderStatus(order.id, 'ordered')}
+                      disabled={actionLoading[order.id] === 'updating'}
+                      className="px-6 py-3 bg-blue-600 text-white text-base font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      ↩️ قيد التحضير (In Progress)
+                      {actionLoading[order.id] === 'updating' ? (
+                        <>
+                          <ButtonSpinner />
+                          <div>
+                            <div>Updating...</div>
+                            <div className="font-arabic text-sm">جاري التحديث...</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span>↩️</span>
+                          <div>
+                            <div>Reopen Order</div>
+                            <div className="font-arabic text-sm">إعادة فتح الطلب</div>
+                          </div>
+                        </>
+                      )}
                     </button>
                   )}
 
-                  {/* Print Label Button */}
-                  <button
-                    onClick={() => printLabel(order.id)}
-                    className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors"
-                  >
-                    🖨️ طباعة (Print)
-                  </button>
+                  {/* Print Label Button - Only for feteer orders */}
+                  {order.item_type === 'feteer' && (
+                    <button
+                      onClick={() => printLabel(order.id)}
+                      disabled={actionLoading[order.id] === 'printing'}
+                      className="px-6 py-3 bg-purple-600 text-white text-base font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {actionLoading[order.id] === 'printing' ? (
+                        <>
+                          <ButtonSpinner />
+                          <div>
+                            <div>Printing...</div>
+                            <div className="font-arabic text-sm">جاري الطباعة...</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span>🖨️</span>
+                          <div>
+                            <div>Print Label</div>
+                            <div className="font-arabic text-sm">طباعة الملصق</div>
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {/* Delete Button */}
                   <button
                     onClick={() => deleteOrder(order.id)}
-                    className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                    disabled={actionLoading[order.id] === 'deleting'}
+                    className="px-6 py-3 bg-red-600 text-white text-base font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    🗑️ حذف (Delete)
+                    {actionLoading[order.id] === 'deleting' ? (
+                      <>
+                        <ButtonSpinner />
+                        <div>
+                          <div>Deleting...</div>
+                          <div className="font-arabic text-sm">جاري الحذف...</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span>🗑️</span>
+                        <div>
+                          <div>Delete</div>
+                          <div className="font-arabic text-sm">حذف الطلب</div>
+                        </div>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -378,24 +466,14 @@ export default function OrdersPage() {
       {/* Quick Stats */}
       <div className="mt-8 bg-white rounded-xl shadow-lg p-4 md:p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats / إحصائيات سريعة</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{orderCounts.pending}</div>
-            <div className="text-sm text-gray-600">Pending</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{orderCounts.in_progress}</div>
-            <div className="text-sm text-gray-600">In Progress</div>
+            <div className="text-2xl font-bold text-blue-600">{orderCounts.ordered}</div>
+            <div className="text-sm text-gray-600">Ordered</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{orderCounts.completed}</div>
             <div className="text-sm text-gray-600">Completed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-amber-600">
-              ${orders.reduce((sum, order) => sum + order.price, 0).toFixed(2)}
-            </div>
-            <div className="text-sm text-gray-600">Total Value</div>
           </div>
         </div>
       </div>

@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         order.extra_nutella ? 'Yes' : 'No',
         `"${order.notes || ''}"`,
         order.status,
-        order.price,
+        order.price || 0,
         order.created_at,
         getWaitTime(order.created_at.toString())
       ]);

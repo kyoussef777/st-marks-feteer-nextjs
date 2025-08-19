@@ -17,17 +17,34 @@ export async function GET(request: NextRequest) {
     // Get all orders in date range
     const orders = await getOrdersInDateRange(startDateStr, endDateStr);
 
-    // Calculate analytics
+    // Calculate analytics - handle missing prices
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, order) => sum + order.price, 0);
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Popular items
+    // Popular items - handle both sweet_type and sweet_selections
     const popularItems: { [key: string]: number } = {};
     orders.forEach(order => {
-      const itemName = order.item_type === 'sweet' ? order.sweet_type : order.feteer_type;
-      if (itemName) {
-        popularItems[itemName] = (popularItems[itemName] || 0) + 1;
+      if (order.item_type === 'sweet') {
+        if (order.sweet_selections) {
+          // Handle multiple sweet selections
+          try {
+            const selections = JSON.parse(order.sweet_selections);
+            Object.entries(selections).forEach(([sweetName, quantity]) => {
+              if (typeof quantity === 'number' && quantity > 0) {
+                popularItems[sweetName] = (popularItems[sweetName] || 0) + quantity;
+              }
+            });
+          } catch {
+            // Fallback if JSON parse fails
+            const itemName = order.sweet_type || 'Unknown Sweet';
+            popularItems[itemName] = (popularItems[itemName] || 0) + 1;
+          }
+        } else if (order.sweet_type) {
+          popularItems[order.sweet_type] = (popularItems[order.sweet_type] || 0) + 1;
+        }
+      } else if (order.feteer_type) {
+        popularItems[order.feteer_type] = (popularItems[order.feteer_type] || 0) + 1;
       }
     });
 
@@ -55,7 +72,7 @@ export async function GET(request: NextRequest) {
         dateMap[date] = { orders: 0, revenue: 0 };
       }
       dateMap[date].orders += 1;
-      dateMap[date].revenue += order.price;
+      dateMap[date].revenue += (order.price || 0);
     });
 
     // Fill in missing dates with 0 values

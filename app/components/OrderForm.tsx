@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { ButtonSpinner } from './LoadingSpinner';
 
 interface FeteerType {
   id: number;
@@ -25,7 +26,7 @@ interface OrderFormProps {
     cheeseTypes: CheeseType[];
     extraToppings: ExtraTopping[];
   };
-  onOrderCreated: () => void;
+  onOrderCreated: (orderData: Record<string, unknown>) => Promise<void>;
 }
 
 export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) {
@@ -46,6 +47,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
   const [showMeatOptions, setShowMeatOptions] = useState(false);
   const [showExtraToppings, setShowExtraToppings] = useState(false);
   const [showOrderPopup, setShowOrderPopup] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [newOrderData, setNewOrderData] = useState<{
     id: number;
     customer_name: string;
@@ -178,59 +181,51 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     }
 
     try {
+      setSubmitting(true);
+      
       const orderData = {
         ...formData,
         meat_selection: [...formData.meat_selection, ...formData.additional_meat_selection],
         sweet_selections: formData.item_type === 'sweet' ? JSON.stringify(formData.sweet_selections) : undefined,
-        status: 'pending'
+        status: 'ordered'
       };
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
+      // Use the context method to create order
+      const newOrder = await onOrderCreated(orderData);
+      
+      // Set the new order data for the popup
+      setNewOrderData({
+        id: newOrder.id,
+        customer_name: formData.customer_name,
+        item_type: formData.item_type,
+        feteer_type: formData.feteer_type || undefined,
+        sweet_type: formData.item_type === 'sweet' ? Object.keys(formData.sweet_selections).join(', ') : undefined,
+        price: totalPrice
       });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        
-        // Set the new order data for the popup
-        setNewOrderData({
-          id: responseData.id,
-          customer_name: formData.customer_name,
-          item_type: formData.item_type,
-          feteer_type: formData.feteer_type || undefined,
-          sweet_type: formData.item_type === 'sweet' ? Object.keys(formData.sweet_selections).join(', ') : undefined,
-          price: totalPrice
-        });
-        
-        // Show the popup
-        setShowOrderPopup(true);
-        
-        // Reset form
-        setFormData({
-          customer_name: '',
-          item_type: 'feteer',
-          feteer_type: '',
-          sweet_type: '',
-          sweet_selections: {},
-          meat_selection: [],
-          additional_meat_selection: [],
-          has_cheese: true,
-          extra_nutella: false,
-          notes: ''
-        });
-        setShowMeatOptions(false);
-        setShowExtraToppings(false);
-        onOrderCreated();
-      } else {
-        throw new Error('Failed to create order');
-      }
+      
+      // Show the popup
+      setShowOrderPopup(true);
+      
+      // Reset form
+      setFormData({
+        customer_name: '',
+        item_type: 'feteer',
+        feteer_type: '',
+        sweet_type: '',
+        sweet_selections: {},
+        meat_selection: [],
+        additional_meat_selection: [],
+        has_cheese: true,
+        extra_nutella: false,
+        notes: ''
+      });
+      setShowMeatOptions(false);
+      setShowExtraToppings(false);
     } catch (error) {
       console.error('Error creating order:', error);
       alert('Failed to place order. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -243,6 +238,60 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     if (!newOrderData) return;
     
     try {
+      setPrinting(true);
+      
+      // Wait for database to fully commit the order with multiple retry attempts
+      let orderExists = false;
+      let attempts = 0;
+      const maxAttempts = 8; // Reduced from 10 to prevent hanging too long
+      
+      while (!orderExists && attempts < maxAttempts) {
+        try {
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          
+          const checkResponse = await fetch(`/api/orders/${newOrderData.id}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (checkResponse.ok) {
+            const orderData = await checkResponse.json();
+            if (orderData && orderData.id) {
+              orderExists = true;
+              break;
+            }
+          }
+        } catch (fetchError) {
+          if (fetchError.name === 'AbortError') {
+            console.warn(`Order check attempt ${attempts + 1} timed out`);
+          } else {
+            console.warn(`Order check attempt ${attempts + 1} failed:`, fetchError);
+          }
+        }
+        
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Progressive delay: 200ms, 400ms, 600ms, etc. but capped at 1s
+          await new Promise(resolve => setTimeout(resolve, Math.min(200 * attempts, 1000)));
+        }
+      }
+      
+      if (!orderExists) {
+        alert('Order is being processed. The label will be available shortly. Please try the Print button in the main orders list.');
+        return;
+      }
+      
+      // Additional small delay to ensure label API is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Open the PDF label in a new window
       const labelUrl = `/api/orders/${newOrderData.id}/label`;
       const printWindow = window.open(labelUrl, '_blank');
@@ -260,7 +309,9 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       }
     } catch (error) {
       console.error('Error printing order:', error);
-      alert('Failed to print order label');
+      alert('Failed to print order label. Please try again.');
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -308,13 +359,23 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           <div>
             <button
               type="submit"
-              disabled={!formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && totalSweetQuantity === 0)}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 rounded-lg font-bold transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitting || !formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && totalSweetQuantity === 0)}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 rounded-lg font-bold transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <div className="text-center">
-                <div className="text-sm">Order</div>
-                <div className="text-lg">${totalPrice.toFixed(2)}</div>
-              </div>
+              {submitting ? (
+                <>
+                  <ButtonSpinner />
+                  <div className="text-center">
+                    <div className="text-sm">Placing Order...</div>
+                    <div className="text-xs font-arabic">جاري وضع الطلب...</div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center">
+                  <div className="text-sm">Order</div>
+                  <div className="text-lg">${totalPrice.toFixed(2)}</div>
+                </div>
+              )}
             </button>
           </div>
         </div>
@@ -653,16 +714,32 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <button
-                onClick={handlePrintOrder}
-                className="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg font-bold text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <span>🖨️</span>
-                <div>
-                  <div>Print Label</div>
-                  <div className="font-arabic text-xs">طباعة الملصق</div>
-                </div>
-              </button>
+              {/* Only show print button for feteer orders */}
+              {newOrderData.item_type === 'feteer' && (
+                <button
+                  onClick={handlePrintOrder}
+                  disabled={printing}
+                  className="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg font-bold text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {printing ? (
+                    <>
+                      <ButtonSpinner />
+                      <div>
+                        <div>Preparing Label...</div>
+                        <div className="font-arabic text-xs">جاري تحضير الملصق...</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span>🖨️</span>
+                      <div>
+                        <div>Print Label</div>
+                        <div className="font-arabic text-xs">طباعة الملصق</div>
+                      </div>
+                    </>
+                  )}
+                </button>
+              )}
               
               <button
                 onClick={handleClosePopup}

@@ -1,5 +1,11 @@
 'use client';
 
+import { useState } from 'react';
+import { useOrders } from '@/lib/orders-context';
+import { ButtonSpinner } from './LoadingSpinner';
+import { ErrorDisplay } from './ErrorBoundary';
+import { AuthError, NetworkError } from '@/lib/data-sync';
+
 interface Order {
   id: number;
   customer_name: string;
@@ -11,35 +17,41 @@ interface Order {
   has_cheese: boolean;
   extra_nutella: boolean;
   notes?: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'ordered' | 'completed';
   price: number;
   created_at: string;
 }
 
 interface OrdersListProps {
   orders: Order[];
-  onOrderUpdate: () => void;
 }
 
-export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
+export default function OrdersList({ orders }: OrdersListProps) {
+  const { updateOrderStatus: contextUpdateStatus, deleteOrder: contextDeleteOrder, refreshOrders } = useOrders();
+  const [actionLoading, setActionLoading] = useState<{ [key: number]: string }>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        onOrderUpdate();
-      } else {
-        throw new Error('Failed to update order status');
-      }
+      setActionError(null);
+      setActionLoading(prev => ({ ...prev, [orderId]: 'updating' }));
+      await contextUpdateStatus(orderId, newStatus);
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('Failed to update order status');
+      if (error instanceof AuthError) {
+        setActionError('Authentication expired. Please refresh the page.');
+      } else if (error instanceof NetworkError) {
+        setActionError('Network error. Please check your connection and try again.');
+      } else {
+        setActionError('Failed to update order status. Please try again.');
+      }
+    } finally {
+      setActionLoading(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [orderId]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
@@ -49,23 +61,38 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
     }
 
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        onOrderUpdate();
-      } else {
-        throw new Error('Failed to delete order');
-      }
+      setActionError(null);
+      setActionLoading(prev => ({ ...prev, [orderId]: 'deleting' }));
+      await contextDeleteOrder(orderId);
     } catch (error) {
       console.error('Error deleting order:', error);
-      alert('Failed to delete order');
+      if (error instanceof AuthError) {
+        setActionError('Authentication expired. Please refresh the page.');
+      } else if (error instanceof NetworkError) {
+        setActionError('Network error. Please check your connection and try again.');
+      } else {
+        setActionError('Failed to delete order. Please try again.');
+      }
+    } finally {
+      setActionLoading(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [orderId]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
   const printLabel = async (orderId: number) => {
     try {
+      setActionLoading(prev => ({ ...prev, [orderId]: 'printing' }));
+      
+      // First check if the order exists
+      const checkResponse = await fetch(`/api/orders/${orderId}`);
+      if (!checkResponse.ok) {
+        alert('Order not found. Please refresh and try again.');
+        return;
+      }
+      
       // Open the PDF label in a new window
       const labelUrl = `/api/orders/${orderId}/label`;
       const printWindow = window.open(labelUrl, '_blank');
@@ -84,14 +111,18 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
     } catch (error) {
       console.error('Error printing label:', error);
       alert('Failed to print label');
+    } finally {
+      setActionLoading(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [orderId]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'in_progress':
+      case 'ordered':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -130,6 +161,12 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshOrders();
+    setRefreshing(false);
+  };
+
   if (orders.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-4 text-center">
@@ -137,16 +174,52 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
         <h3 className="text-sm font-semibold text-gray-600 mb-1">No Active Orders</h3>
         <p className="text-xs text-gray-500 mb-1">All orders completed!</p>
         <p className="text-xs font-arabic text-gray-500">تم الانتهاء من جميع الطلبات!</p>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="mt-2 px-3 py-1 bg-amber-500 text-white text-xs rounded hover:bg-amber-600 transition-colors disabled:opacity-50"
+        >
+          {refreshing ? (
+            <>
+              <ButtonSpinner className="w-3 h-3 mr-1" />
+              Refreshing...
+            </>
+          ) : (
+            '🔄 Refresh'
+          )}
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-bold text-amber-900 mb-3">
-        Active Orders ({orders.length})
-        <span className="block text-sm font-arabic text-amber-700">الطلبات النشطة</span>
-      </h2>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-bold text-amber-900">
+          Active Orders ({orders.length})
+          <span className="block text-sm font-arabic text-amber-700">الطلبات النشطة</span>
+        </h2>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="px-2 py-1 bg-amber-500 text-white text-xs rounded hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+        >
+          {refreshing ? (
+            <ButtonSpinner className="w-3 h-3" />
+          ) : (
+            '🔄'
+          )}
+        </button>
+      </div>
+      
+      {/* Action error display */}
+      {actionError && (
+        <ErrorDisplay 
+          error={actionError}
+          onDismiss={() => setActionError(null)}
+          className="mb-3"
+        />
+      )}
 
       {orders.map((order) => (
         <div key={order.id} className="bg-white rounded-lg shadow-md p-3 border-l-3 border-amber-400">
@@ -215,47 +288,76 @@ export default function OrdersList({ orders, onOrderUpdate }: OrdersListProps) {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-1">
-            {order.status === 'pending' && (
-              <button
-                onClick={() => updateOrderStatus(order.id, 'in_progress')}
-                className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-              >
-                <div className="text-center">
-                  <div>▶ Start</div>
-                  <div className="font-arabic text-xs">ابدأ</div>
-                </div>
-              </button>
-            )}
-            
-            {order.status === 'in_progress' && (
+            {order.status === 'ordered' && (
               <button
                 onClick={() => updateOrderStatus(order.id, 'completed')}
-                className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
+                disabled={actionLoading[order.id] === 'updating'}
+                className="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="text-center">
-                  <div>✅ Done</div>
-                  <div className="font-arabic text-xs">تم</div>
+                  {actionLoading[order.id] === 'updating' ? (
+                    <>
+                      <div className="flex items-center justify-center gap-1">
+                        <ButtonSpinner className="w-3 h-3" />
+                        <span>Updating...</span>
+                      </div>
+                      <div className="font-arabic text-xs">جاري التحديث...</div>
+                    </>
+                  ) : (
+                    <>
+                      <div>✅ Mark Complete</div>
+                      <div className="font-arabic text-xs">تم إنجازه</div>
+                    </>
+                  )}
                 </div>
               </button>
             )}
 
-            <button
-              onClick={() => printLabel(order.id)}
-              className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
-            >
-              <div className="text-center">
-                <div>🖨️ Print</div>
-                <div className="font-arabic text-xs">طباعة</div>
-              </div>
-            </button>
+            {/* Only show print button for feteer orders */}
+            {order.item_type === 'feteer' && (
+              <button
+                onClick={() => printLabel(order.id)}
+                disabled={actionLoading[order.id] === 'printing'}
+                className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-center">
+                  {actionLoading[order.id] === 'printing' ? (
+                    <>
+                      <div className="flex items-center justify-center gap-1">
+                        <ButtonSpinner className="w-2 h-2" />
+                        <span>Printing</span>
+                      </div>
+                      <div className="font-arabic text-xs">جاري الطباعة</div>
+                    </>
+                  ) : (
+                    <>
+                      <div>🖨️ Print</div>
+                      <div className="font-arabic text-xs">طباعة</div>
+                    </>
+                  )}
+                </div>
+              </button>
+            )}
             
             <button
               onClick={() => deleteOrder(order.id)}
-              className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
+              disabled={actionLoading[order.id] === 'deleting'}
+              className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="text-center">
-                <div>🗑️</div>
-                <div className="font-arabic text-xs">حذف</div>
+                {actionLoading[order.id] === 'deleting' ? (
+                  <>
+                    <div className="flex items-center justify-center">
+                      <ButtonSpinner className="w-2 h-2" />
+                    </div>
+                    <div className="font-arabic text-xs">حذف</div>
+                  </>
+                ) : (
+                  <>
+                    <div>🗑️</div>
+                    <div className="font-arabic text-xs">حذف</div>
+                  </>
+                )}
               </div>
             </button>
           </div>

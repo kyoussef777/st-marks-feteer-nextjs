@@ -20,10 +20,19 @@ export function middleware(request: NextRequest) {
   // Check for auth token in cookies
   const authToken = request.cookies.get('auth-token');
 
-  // Handle page routes - redirect to login if no token
+  // Handle API routes vs page routes differently
   if (!authToken) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    if (pathname.startsWith('/api/')) {
+      // For API routes, return 401 JSON response
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    } else {
+      // For page routes, redirect to login
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();
