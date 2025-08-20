@@ -22,22 +22,23 @@ export default function Navbar() {
 
   return (
     <nav className="navbar-enhanced text-white shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-20">
+      <div className="container mx-auto px-3 sm:px-4">
+        <div className="flex justify-between items-center h-16 lg:h-20 gap-2">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 min-w-0 flex-1 lg:flex-initial">
             <Link href="/" className="group text-white transition-all duration-300">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-2xl">🥞</span>
+              <div className="flex items-center space-x-2 lg:space-x-3">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                  <span className="text-lg lg:text-2xl">🥞</span>
                 </div>
-                <div>
-                  <span className="block text-xl font-bold tracking-wide group-hover:text-amber-200 transition-colors">
-                    St. Mark&apos;s Sweets & Feteer
+                <div className="min-w-0 flex-1">
+                  <span className="block text-sm lg:text-xl font-bold tracking-wide group-hover:text-amber-200 transition-colors truncate">
+                    St. Mark&apos;s Sweets
                   </span>
-                  <span className="block font-arabic-large opacity-90 group-hover:opacity-100 transition-opacity text-white">
+                  <span className="hidden lg:block font-arabic-large opacity-90 group-hover:opacity-100 transition-opacity text-white">
                     حلويات وفطير مارك الإسكندرية
                   </span>
+
                 </div>
               </div>
             </Link>
@@ -97,13 +98,14 @@ export default function Navbar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="lg:hidden flex items-center space-x-2">
-            <div className="text-white text-sm mr-2">
-              <span className="block font-medium">{user?.username}</span>
+          <div className="lg:hidden flex items-center space-x-2 flex-shrink-0">
+            <div className="hidden sm:block text-white text-sm">
+              <span className="block font-medium text-xs truncate max-w-20">{user?.username}</span>
             </div>
             <button
               onClick={toggleMenu}
-              className="p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300"
+              className="p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 flex-shrink-0"
+              aria-label="Toggle menu"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {isOpen ? (
@@ -119,6 +121,17 @@ export default function Navbar() {
         {/* Mobile Navigation */}
         {isOpen && (
           <div className="lg:hidden pb-6">
+            {/* Mobile User Info */}
+            <div className="px-4 py-3 mt-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+              <div className="flex items-center">
+                <span className="text-xl mr-3">👤</span>
+                <div>
+                  <span className="block text-sm font-medium text-white">{user?.username}</span>
+                  <span className="block text-xs font-arabic opacity-80 text-amber-100">مرحبا بك</span>
+                </div>
+              </div>
+            </div>
+            
             <div className="space-y-3 mt-4">
               {navigation.map((item) => (
                 <Link
