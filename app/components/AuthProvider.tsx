@@ -4,7 +4,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthUser {
+  id: number;
   username: string;
+  role: string;
   isAuthenticated: boolean;
 }
 

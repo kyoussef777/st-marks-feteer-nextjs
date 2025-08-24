@@ -22,6 +22,19 @@ export async function GET(request: NextRequest) {
     const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+    // Calculate revenue by item type
+    const feteerOrders = orders.filter(order => order.item_type === 'feteer');
+    const sweetOrders = orders.filter(order => order.item_type === 'sweet');
+    
+    const feteerRevenue = feteerOrders.reduce((sum, order) => sum + (order.price || 0), 0);
+    const sweetRevenue = sweetOrders.reduce((sum, order) => sum + (order.price || 0), 0);
+    
+    const feteerCount = feteerOrders.length;
+    const sweetCount = sweetOrders.length;
+    
+    const feteerAverageOrder = feteerCount > 0 ? feteerRevenue / feteerCount : 0;
+    const sweetAverageOrder = sweetCount > 0 ? sweetRevenue / sweetCount : 0;
+
     // Popular items - handle both sweet_type and sweet_selections
     const popularItems: { [key: string]: number } = {};
     orders.forEach(order => {
@@ -92,7 +105,14 @@ export async function GET(request: NextRequest) {
       popularItems,
       topCustomers,
       dailyStats,
-      statusBreakdown
+      statusBreakdown,
+      // New categorized analytics
+      feteerRevenue,
+      sweetRevenue,
+      feteerCount,
+      sweetCount,
+      feteerAverageOrder,
+      sweetAverageOrder
     };
 
     return NextResponse.json(analytics);

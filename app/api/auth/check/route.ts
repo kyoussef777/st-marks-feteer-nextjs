@@ -3,7 +3,7 @@ import { isAuthenticated } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = isAuthenticated(request);
+    const user = await isAuthenticated(request);
     
     if (user) {
       return NextResponse.json({

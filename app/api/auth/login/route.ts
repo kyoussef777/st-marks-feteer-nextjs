@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyCredentials, generateToken } from '@/lib/auth';
+import { verifyCredentials, generateToken, initializeDefaultAdmin } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize default admin if needed
+    await initializeDefaultAdmin();
+
     const body = await request.json();
     const { username, password } = body;
 
@@ -15,9 +18,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify credentials
-    const isValid = await verifyCredentials(username.trim(), password);
+    const user = await verifyCredentials(username.trim(), password);
 
-    if (!isValid) {
+    if (!user) {
       // Add a small delay to prevent brute force attacks
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -28,14 +31,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate JWT token
-    const token = generateToken(username.trim());
+    const token = await generateToken(user);
 
     // Create response with token
     const response = NextResponse.json(
       { 
         success: true, 
         message: 'Login successful',
-        user: { username: username.trim(), isAuthenticated: true }
+        user: { 
+          id: user.id,
+          username: user.username, 
+          role: user.role,
+          isAuthenticated: true 
+        }
       },
       { status: 200 }
     );

@@ -11,12 +11,18 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const navigation = [
-    { name: 'New Orders', nameAr: 'طلبات جديدة', href: '/', icon: '🍽️' },
-    { name: 'All Orders', nameAr: 'كل الطلبات', href: '/orders', icon: '📋' },
-    { name: 'Menu Editor', nameAr: 'تحرير القائمة', href: '/menu', icon: '📝' },
-    { name: 'Analytics', nameAr: 'التحليلات', href: '/analytics', icon: '📊' }
+  // Filter navigation based on user role
+  const allNavigation = [
+    { name: 'New Orders', nameAr: 'طلبات جديدة', href: '/', icon: '🍽️', roles: ['admin', 'cashier'] },
+    { name: 'All Orders', nameAr: 'كل الطلبات', href: '/orders', icon: '📋', roles: ['admin', 'cashier'] },
+    { name: 'Menu Editor', nameAr: 'تحرير القائمة', href: '/menu', icon: '📝', roles: ['admin', 'cashier'] },
+    { name: 'Analytics', nameAr: 'التحليلات', href: '/analytics', icon: '📊', roles: ['admin'] },
+    { name: 'Admin Panel', nameAr: 'لوحة الإدارة', href: '/admin', icon: '⚙️', roles: ['admin'] }
   ];
+
+  const navigation = allNavigation.filter(item => 
+    user?.role && item.roles.includes(user.role)
+  );
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -79,6 +85,7 @@ export default function Navbar() {
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{user?.username}</p>
+                    <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                     <p className="text-xs text-gray-500 font-arabic">مرحبا بك</p>
                   </div>
                   <button
@@ -127,6 +134,7 @@ export default function Navbar() {
                 <span className="text-xl mr-3">👤</span>
                 <div>
                   <span className="block text-sm font-medium text-white">{user?.username}</span>
+                  <span className="block text-xs capitalize text-amber-200">{user?.role}</span>
                   <span className="block text-xs font-arabic opacity-80 text-amber-100">مرحبا بك</span>
                 </div>
               </div>

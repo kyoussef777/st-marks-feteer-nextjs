@@ -1,6 +1,9 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
+import { eq } from 'drizzle-orm';
+import { users, type User } from './schema';
+import { getDbInstance } from './database-hybrid';
 
 // Auth configuration from environment variables - NO DEFAULTS IN PRODUCTION
 const AUTH_CONFIG = {
@@ -22,43 +25,63 @@ if (!AUTH_CONFIG.jwtSecret) {
 }
 
 export interface AuthUser {
+  id: number;
   username: string;
+  role: string;
   isAuthenticated: boolean;
 }
 
 /**
- * Verify username and password against environment variables
+ * Verify username and password against database
  */
-export async function verifyCredentials(username: string, password: string): Promise<boolean> {
+export async function verifyCredentials(username: string, password: string): Promise<User | null> {
   try {
-    // Check username
-    if (username !== AUTH_CONFIG.username) {
-      return false;
+    const db = await getDbInstance();
+    
+    // Find user by username
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const user = result[0];
+    
+    if (!user || !user.is_active) {
+      return null;
     }
 
-    // For development, compare passwords directly
-    // In production, you would hash the password in env and compare hashes
-    return password === AUTH_CONFIG.password;
+    // Compare password
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return null;
+    }
+
+    // Update last login
+    await db.update(users)
+      .set({ last_login: new Date() })
+      .where(eq(users.id, user.id));
+
+    return user;
   } catch (error) {
     console.error('Error verifying credentials:', error);
-    return false;
+    return null;
   }
 }
 
 /**
  * Generate JWT token for authenticated user
  */
-export function generateToken(username: string): string {
+export async function generateToken(user: User): Promise<string> {
   try {
-    const payload = {
-      username,
+    const secret = new TextEncoder().encode(AUTH_CONFIG.jwtSecret);
+    const jwt = await new SignJWT({
+      id: user.id,
+      username: user.username,
+      role: user.role,
       isAuthenticated: true,
-      iat: Math.floor(Date.now() / 1000),
-    };
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('7d')
+      .sign(secret);
 
-    return jwt.sign(payload, AUTH_CONFIG.jwtSecret, {
-      expiresIn: AUTH_CONFIG.tokenExpiry,
-    });
+    return jwt;
   } catch (error) {
     console.error('Error generating token:', error);
     throw new Error('Failed to generate authentication token');
@@ -69,22 +92,29 @@ export function generateToken(username: string): string {
  * Verify JWT token and return user data
  */
 interface JWTPayload {
+  id: number;
   username: string;
+  role: string;
   isAuthenticated: boolean;
   iat?: number;
   exp?: number;
 }
 
-export function verifyToken(token: string): AuthUser | null {
+export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
-    const decoded = jwt.verify(token, AUTH_CONFIG.jwtSecret) as JWTPayload;
+    const secret = new TextEncoder().encode(AUTH_CONFIG.jwtSecret);
+    const { payload } = await jwtVerify(token, secret);
     
-    if (!decoded || !decoded.username || !decoded.isAuthenticated) {
+    const decoded = payload as JWTPayload;
+    
+    if (!decoded || !decoded.username || !decoded.isAuthenticated || !decoded.id || !decoded.role) {
       return null;
     }
 
     return {
+      id: decoded.id,
       username: decoded.username,
+      role: decoded.role,
       isAuthenticated: true,
     };
   } catch (error) {
@@ -115,14 +145,14 @@ export function extractToken(request: NextRequest): string | null {
 /**
  * Middleware helper to check authentication
  */
-export function isAuthenticated(request: NextRequest): AuthUser | null {
+export async function isAuthenticated(request: NextRequest): Promise<AuthUser | null> {
   const token = extractToken(request);
   
   if (!token) {
     return null;
   }
 
-  return verifyToken(token);
+  return await verifyToken(token);
 }
 
 /**
@@ -153,8 +183,126 @@ export function generateSecretKey(length: number = 64): string {
 }
 
 /**
- * Check if user is admin (for future role-based access)
+ * Check if user is admin
  */
 export function isAdmin(user: AuthUser | null): boolean {
-  return user?.isAuthenticated === true && user?.username === AUTH_CONFIG.username;
+  return user?.isAuthenticated === true && user?.role === 'admin';
+}
+
+/**
+ * Check if user is cashier
+ */
+export function isCashier(user: AuthUser | null): boolean {
+  return user?.isAuthenticated === true && user?.role === 'cashier';
+}
+
+/**
+ * Check if user has admin or cashier role
+ */
+export function canAccessOrders(user: AuthUser | null): boolean {
+  return isAdmin(user) || isCashier(user);
+}
+
+/**
+ * Create a new user (admin only)
+ */
+export async function createUser(username: string, password: string, role: 'admin' | 'cashier'): Promise<User> {
+  try {
+    const db = await getDbInstance();
+    
+    // Check if username already exists
+    const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    if (existing.length > 0) {
+      throw new Error('Username already exists');
+    }
+
+    // Hash password
+    const password_hash = await hashPassword(password);
+
+    // Insert user
+    const result = await db.insert(users).values({
+      username,
+      password_hash,
+      role,
+      is_active: true,
+    }).returning();
+
+    return result[0];
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all users (admin only)
+ */
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    const db = await getDbInstance();
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      role: users.role,
+      is_active: users.is_active,
+      created_at: users.created_at,
+      last_login: users.last_login,
+    }).from(users);
+  } catch (error) {
+    console.error('Error getting users:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update user status (admin only)
+ */
+export async function updateUserStatus(userId: number, isActive: boolean): Promise<void> {
+  try {
+    const db = await getDbInstance();
+    await db.update(users)
+      .set({ is_active: isActive })
+      .where(eq(users.id, userId));
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete user (admin only)
+ */
+export async function deleteUser(userId: number): Promise<void> {
+  try {
+    const db = await getDbInstance();
+    await db.delete(users).where(eq(users.id, userId));
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+}
+
+/**
+ * Initialize default admin user from environment variables
+ */
+export async function initializeDefaultAdmin(): Promise<void> {
+  try {
+    if (!AUTH_CONFIG.username || !AUTH_CONFIG.password) {
+      return; // Skip if env vars not set
+    }
+
+    const db = await getDbInstance();
+    
+    // Check if admin user already exists
+    const existing = await db.select().from(users).where(eq(users.username, AUTH_CONFIG.username)).limit(1);
+    if (existing.length > 0) {
+      return; // Admin already exists
+    }
+
+    // Create default admin user
+    await createUser(AUTH_CONFIG.username, AUTH_CONFIG.password, 'admin');
+    console.log(`Default admin user '${AUTH_CONFIG.username}' created`);
+  } catch (error) {
+    console.error('Error initializing default admin:', error);
+  }
 }

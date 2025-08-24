@@ -36,6 +36,13 @@ interface Analytics {
   topCustomers: { [key: string]: number };
   dailyStats: { date: string; orders: number; revenue: number }[];
   statusBreakdown: { [key: string]: number };
+  // New categorized analytics
+  feteerRevenue: number;
+  sweetRevenue: number;
+  feteerCount: number;
+  sweetCount: number;
+  feteerAverageOrder: number;
+  sweetAverageOrder: number;
 }
 
 export default function AnalyticsPage() {
@@ -360,6 +367,83 @@ export default function AnalyticsPage() {
           icon="✅"
           color="amber"
         />
+      </div>
+
+      {/* Revenue Breakdown by Category */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-8">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mr-3">
+                <span className="text-2xl">🥞</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Feteer Revenue</h3>
+                <p className="text-sm font-arabic text-gray-600">إيرادات الفطير</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Revenue</span>
+              <span className="text-xl font-bold text-amber-600">${analytics.feteerRevenue.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Orders</span>
+              <span className="text-lg font-semibold text-gray-800">{analytics.feteerCount}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Average Order</span>
+              <span className="text-lg font-semibold text-gray-800">${analytics.feteerAverageOrder.toFixed(2)}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-amber-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${analytics.totalRevenue > 0 ? (analytics.feteerRevenue / analytics.totalRevenue * 100) : 0}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-gray-500 text-center">
+              {analytics.totalRevenue > 0 ? (analytics.feteerRevenue / analytics.totalRevenue * 100).toFixed(1) : '0'}% of total revenue
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mr-3">
+                <span className="text-2xl">🍯</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Sweets Revenue</h3>
+                <p className="text-sm font-arabic text-gray-600">إيرادات الحلويات</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Revenue</span>
+              <span className="text-xl font-bold text-pink-600">${analytics.sweetRevenue.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Orders</span>
+              <span className="text-lg font-semibold text-gray-800">{analytics.sweetCount}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Average Order</span>
+              <span className="text-lg font-semibold text-gray-800">${analytics.sweetAverageOrder.toFixed(2)}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-pink-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${analytics.totalRevenue > 0 ? (analytics.sweetRevenue / analytics.totalRevenue * 100) : 0}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-gray-500 text-center">
+              {analytics.totalRevenue > 0 ? (analytics.sweetRevenue / analytics.totalRevenue * 100).toFixed(1) : '0'}% of total revenue
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Charts and Tables */}

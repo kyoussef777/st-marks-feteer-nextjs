@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isAuthenticated, isAdmin } from '@/lib/middleware-auth';
 
 // Define routes that don't require authentication
 const publicRoutes = [
@@ -9,7 +10,23 @@ const publicRoutes = [
   '/api/auth/check',
 ];
 
-export function middleware(request: NextRequest) {
+// Define admin-only routes
+const adminRoutes = [
+  '/admin',
+  '/api/admin',
+  '/analytics',
+];
+
+// Define cashier-accessible routes
+const cashierRoutes = [
+  '/',
+  '/orders',
+  '/menu',
+  '/api/orders',
+  '/api/menu',
+];
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
@@ -17,11 +34,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth token in cookies
-  const authToken = request.cookies.get('auth-token');
+  // Check for auth token and get user info
+  const user = await isAuthenticated(request);
 
-  // Handle API routes vs page routes differently
-  if (!authToken) {
+  // Handle unauthenticated users
+  if (!user) {
     if (pathname.startsWith('/api/')) {
       // For API routes, return 401 JSON response
       return NextResponse.json(
@@ -32,6 +49,37 @@ export function middleware(request: NextRequest) {
       // For page routes, redirect to login
       const loginUrl = new URL('/login', request.url);
       return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // Check admin-only routes
+  if (adminRoutes.some(route => pathname.startsWith(route))) {
+    if (!isAdmin(user)) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Admin access required' },
+          { status: 403 }
+        );
+      } else {
+        // Redirect non-admin users to home
+        const homeUrl = new URL('/', request.url);
+        return NextResponse.redirect(homeUrl);
+      }
+    }
+  }
+
+  // For cashier routes, both admin and cashier can access
+  if (cashierRoutes.some(route => pathname.startsWith(route))) {
+    if (user.role !== 'admin' && user.role !== 'cashier') {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      } else {
+        const homeUrl = new URL('/', request.url);
+        return NextResponse.redirect(homeUrl);
+      }
     }
   }
 

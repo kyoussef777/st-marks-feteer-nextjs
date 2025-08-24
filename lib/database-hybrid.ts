@@ -66,6 +66,20 @@ export function getDatabase() {
   return dbInstance;
 }
 
+export async function getDbInstance() {
+  isNeonAvailable = checkNeonAvailability();
+  
+  if (isNeonAvailable) {
+    if (!dbInstance) {
+      const sql = neon(process.env.DATABASE_URL!);
+      dbInstance = drizzle(sql);
+    }
+    return dbInstance;
+  } else {
+    throw new Error('Neon database not available');
+  }
+}
+
 export async function initializeDatabase() {
   isNeonAvailable = checkNeonAvailability();
   

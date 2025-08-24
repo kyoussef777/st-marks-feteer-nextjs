@@ -66,3 +66,16 @@ export type NewCheeseType = typeof cheese_types.$inferInsert;
 
 export type ExtraTopping = typeof extra_toppings.$inferSelect;
 export type NewExtraTopping = typeof extra_toppings.$inferInsert;
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  password_hash: text('password_hash').notNull(),
+  role: text('role').notNull().default('cashier'), // 'admin' or 'cashier'
+  is_active: boolean('is_active').default(true),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  last_login: timestamp('last_login'),
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
