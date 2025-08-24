@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { dataSync } from './data-sync';
 import type { Order } from '@/types';
 
@@ -16,11 +17,13 @@ interface OrdersContextType {
   deleteOrder: (orderId: number) => Promise<void>;
   lastUpdated: number;
   isOnline: boolean;
+  invalidateCache: () => void;
 }
 
 const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
 
 export function OrdersProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +35,7 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
   const mounted = useRef(true);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousPath = useRef(pathname);
 
   // Derived state with memoization
   const orderedOrders = allOrders.filter(order => order.status === 'ordered');
@@ -197,6 +201,36 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
     }
   }, [allOrders, refreshOrders]);
 
+  // Cache invalidation function for external use
+  const invalidateCache = useCallback(() => {
+    console.log('OrdersContext: Cache invalidated, refreshing...');
+    setLastUpdated(Date.now());
+    if (mounted.current && !refreshInProgress.current) {
+      refreshOrders(false);
+    }
+  }, [refreshOrders]);
+
+  // Navigation-based refresh
+  useEffect(() => {
+    if (previousPath.current !== pathname) {
+      console.log('OrdersContext: Route changed from', previousPath.current, 'to', pathname);
+      
+      // Pages that should trigger a refresh when navigated to
+      const refreshPages = ['/', '/orders', '/analytics'];
+      
+      if (refreshPages.some(page => pathname === page || pathname.startsWith(page + '/'))) {
+        console.log('OrdersContext: Refreshing data due to navigation');
+        setTimeout(() => {
+          if (mounted.current && !refreshInProgress.current) {
+            refreshOrders(false);
+          }
+        }, 100); // Small delay to let the page settle
+      }
+      
+      previousPath.current = pathname;
+    }
+  }, [pathname, refreshOrders]);
+
   // Component cleanup
   useEffect(() => {
     mounted.current = true;
@@ -305,7 +339,8 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
     updateOrderStatus,
     deleteOrder,
     lastUpdated,
-    isOnline
+    isOnline,
+    invalidateCache
   };
 
   return (

@@ -46,7 +46,7 @@ interface Analytics {
 }
 
 export default function AnalyticsPage() {
-  const { allOrders, loading: ordersLoading } = useOrders();
+  const { allOrders, loading: ordersLoading, lastUpdated, refreshOrders } = useOrders();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,6 +63,20 @@ export default function AnalyticsPage() {
     
     return () => clearInterval(interval);
   }, []);
+
+  // Refresh analytics when orders change
+  useEffect(() => {
+    if (!ordersLoading) {
+      fetchAnalytics(true);
+    }
+  }, [lastUpdated, ordersLoading]);
+
+  // Fresh data on page load
+  useEffect(() => {
+    // Force a fresh fetch when the page loads
+    console.log('Analytics page loaded, forcing data refresh');
+    refreshOrders();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAnalytics = async (isRefresh = false) => {
     try {

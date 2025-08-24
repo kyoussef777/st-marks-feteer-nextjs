@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/components/AuthProvider';
+import { useOrders } from '@/lib/orders-context';
 
 interface User {
   id: number;
@@ -15,6 +16,7 @@ interface User {
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
+  const { invalidateCache } = useOrders();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -133,6 +135,11 @@ export default function AdminPage() {
       if (response.ok) {
         const result = await response.json();
         alert(`Database reset completed: ${result.results.join(', ')}`);
+        
+        // Invalidate orders cache to refresh all data
+        if (resetOrders) {
+          invalidateCache();
+        }
       } else {
         const error = await response.json();
         alert(error.error);

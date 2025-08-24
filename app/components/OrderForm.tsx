@@ -160,8 +160,9 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.customer_name.trim()) {
-      alert('Please fill in customer name');
+    // Customer name is only required for feteer orders (sweets are pre-made and don't need names)
+    if (formData.item_type === 'feteer' && !formData.customer_name.trim()) {
+      alert('Please fill in customer name for feteer orders');
       return;
     }
     
@@ -185,9 +186,12 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       
       const orderData = {
         ...formData,
+        // For sweet orders, use a generic name if customer name is empty
+        customer_name: formData.customer_name.trim() || (formData.item_type === 'sweet' ? 'Sweet Customer' : ''),
         meat_selection: [...formData.meat_selection, ...formData.additional_meat_selection],
         sweet_selections: formData.item_type === 'sweet' ? JSON.stringify(formData.sweet_selections) : undefined,
-        status: 'ordered'
+        // Sweet orders go directly to completed since they are pre-made
+        status: formData.item_type === 'sweet' ? 'completed' : 'ordered'
       };
 
       // Use the context method to create order
@@ -372,22 +376,31 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         {/* Top Row: Customer Name and Submit Button */}
         <div className="grid grid-cols-4 gap-4 items-end">
           <div className="col-span-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Customer Name / اسم العميل
+            <label className="block text-sm font-medium text-gray-700 mb-1" hidden={formData.item_type === 'sweet'}>
+              Customer Name / اسم العميل 
+              {formData.item_type === 'sweet' && (
+                <span className="text-gray-500 font-normal text-xs ml-1">(Optional for sweets / اختياري للحلويات)</span>
+              )}
             </label>
             <input
               type="text"
+              hidden={formData.item_type === 'sweet'}
               value={formData.customer_name}
               onChange={(e) => setFormData(prev => ({ ...prev, customer_name: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              placeholder="Enter customer name"
-              required
+              placeholder={formData.item_type === 'sweet' ? "Optional for sweets" : "Enter customer name"}
+              required={formData.item_type === 'feteer'}
             />
           </div>
           <div>
             <button
               type="submit"
-              disabled={submitting || !formData.customer_name.trim() || (formData.item_type === 'feteer' && !formData.feteer_type) || (formData.item_type === 'sweet' && totalSweetQuantity === 0)}
+              disabled={submitting || 
+                // For feteer, require both name and feteer type
+                (formData.item_type === 'feteer' && (!formData.customer_name.trim() || !formData.feteer_type)) ||
+                // For sweets, only require at least one sweet selected
+                (formData.item_type === 'sweet' && totalSweetQuantity === 0)
+              }
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 rounded-lg font-bold transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting ? (
