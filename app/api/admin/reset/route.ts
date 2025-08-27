@@ -6,14 +6,14 @@ import { sql } from 'drizzle-orm';
 
 const DEFAULT_MENU_DATA = {
   feteer_types: [
-    { item_type: 'feteer', item_name: 'Feteer Meshaltet (Plain)', item_name_arabic: 'فطير مشلتت', price: 10 },
-    { item_type: 'feteer', item_name: 'Feteer Gebna Meshakala', item_name_arabic: 'فطير بالجبنة المشكلة', price: 15 },
-    { item_type: 'feteer', item_name: 'Feteer Lahma Meshakala', item_name_arabic: 'فطير باللحمة المشكلة', price: 25 },
+    { item_type: 'feteer_type', item_name: 'Feteer Meshaltet (Plain)', item_name_arabic: 'فطير مشلتت', price: 10 },
+    { item_type: 'feteer_type', item_name: 'Feteer Gebna Meshakala', item_name_arabic: 'فطير بالجبنة المشكلة', price: 15 },
+    { item_type: 'feteer_type', item_name: 'Feteer Lahma Meshakala', item_name_arabic: 'فطير باللحمة المشكلة', price: 25 },
   ],
   sweets: [
-    { item_type: 'sweet', item_name: 'Baklawa', item_name_arabic: 'بقلاوة', price: 12 },
-    { item_type: 'sweet', item_name: 'Konafa', item_name_arabic: 'كنافة', price: 15 },
-    { item_type: 'sweet', item_name: 'Basbousa', item_name_arabic: 'بسبوسة', price: 10 },
+    { item_type: 'sweet_type', item_name: 'Baklawa', item_name_arabic: 'بقلاوة', price: 12 },
+    { item_type: 'sweet_type', item_name: 'Konafa', item_name_arabic: 'كنافة', price: 15 },
+    { item_type: 'sweet_type', item_name: 'Basbousa', item_name_arabic: 'بسبوسة', price: 10 },
   ],
   meat_types: [
     { name: 'Sogoq Masri', name_arabic: 'سجق مصري', price: 0, is_default: true },
