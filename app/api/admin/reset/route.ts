@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticated, isAdmin } from '@/lib/auth';
 import { getDbInstance } from '@/lib/database-hybrid';
 import { orders, menu_config, meat_types, cheese_types, extra_toppings } from '@/lib/schema';
+import { sql } from 'drizzle-orm';
 
 const DEFAULT_MENU_DATA = {
   feteer_types: [
@@ -50,7 +51,9 @@ export async function POST(request: NextRequest) {
     if (resetOrders) {
       // Delete all orders
       await db.delete(orders);
-      results.push('All orders deleted');
+      // Reset the sequence to start from 1
+      await db.execute(sql`ALTER SEQUENCE orders_id_seq RESTART WITH 1;`);
+      results.push('All orders deleted and ID sequence reset');
     }
 
     if (resetMenu) {
