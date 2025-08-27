@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrderById, getMeatTypes } from '@/lib/database-hybrid';
+import { getOrderById } from '@/lib/database-hybrid';
 import jsPDF from 'jspdf';
 
 interface OrderWithSweets {
@@ -176,37 +176,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Feteer-specific details
     if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Mixed Meat' && order.meat_selection) {
-      // Get meat types to distinguish between default and additional meats
-      const meatTypes = await getMeatTypes();
       const selectedMeats = order.meat_selection.split(',').map(meat => meat.trim());
       
-      // Separate default and additional meats
-      const defaultMeats: string[] = [];
-      const additionalMeats: string[] = [];
+      // Based on UI logic: first 2 meats are "default", any additional are "extra"
+      const defaultMeats = selectedMeats.slice(0, 2);
+      const additionalMeats = selectedMeats.slice(2);
       
-      selectedMeats.forEach(meatName => {
-        const meatType = meatTypes.find(mt => mt.name === meatName);
-        if (meatType?.is_default) {
-          defaultMeats.push(meatName);
-        } else {
-          additionalMeats.push(meatName);
-        }
-      });
-      
-      // Display default meats
+      // Display default meats (first 2 selected)
       if (defaultMeats.length > 0) {
         pdf.setFont('helvetica', 'bold');
-        yPos = addWrappedText('DEFAULT MEATS:', margin, yPos, maxWidth, pdf, lineHeight);
+        yPos = addWrappedText('INCLUDED MEATS:', margin, yPos, maxWidth, pdf, lineHeight);
         
         pdf.setFont('helvetica', 'normal');
         const defaultMeatText = sanitizeText(defaultMeats.join(', '));
         yPos = addWrappedText(defaultMeatText, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
       }
       
-      // Display additional meats
+      // Display additional meats (beyond first 2)
       if (additionalMeats.length > 0) {
         pdf.setFont('helvetica', 'bold');
-        yPos = addWrappedText('EXTRA MEATS:', margin, yPos, maxWidth, pdf, lineHeight);
+        yPos = addWrappedText('EXTRA MEATS (+$2 each):', margin, yPos, maxWidth, pdf, lineHeight);
         
         pdf.setFont('helvetica', 'normal');
         const additionalMeatText = sanitizeText(additionalMeats.join(', '));
