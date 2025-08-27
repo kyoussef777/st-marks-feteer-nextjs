@@ -111,7 +111,7 @@ export default function OrdersPage() {
               } catch {
                 console.log('Auto-close blocked by browser, window will remain open');
               }
-            }, 2000); // 2 seconds delay to ensure print dialog has appeared
+            }, 7000); // 7 seconds delay to ensure print dialog has appeared
             
             // Listen for print events to close immediately after printing
             printWindow.addEventListener('afterprint', () => {
@@ -127,7 +127,7 @@ export default function OrdersPage() {
             // Fallback: Focus back to main window
             setTimeout(() => {
               window.focus();
-            }, 3000);
+            }, 8000);
           }, 1000);
         };
       } else {
