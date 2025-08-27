@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrderById } from '@/lib/database-hybrid';
+import { getOrderById, getMeatTypes } from '@/lib/database-hybrid';
 import jsPDF from 'jspdf';
 
 interface OrderWithSweets {
@@ -176,13 +176,45 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Feteer-specific details
     if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Mixed Meat' && order.meat_selection) {
-      pdf.setFont('helvetica', 'bold');
-      yPos = addWrappedText('MEAT SELECTION:', margin, yPos, maxWidth, pdf, lineHeight);
+      // Get meat types to distinguish between default and additional meats
+      const meatTypes = await getMeatTypes();
+      const selectedMeats = order.meat_selection.split(',').map(meat => meat.trim());
       
+      // Separate default and additional meats
+      const defaultMeats: string[] = [];
+      const additionalMeats: string[] = [];
+      
+      selectedMeats.forEach(meatName => {
+        const meatType = meatTypes.find(mt => mt.name === meatName);
+        if (meatType?.is_default) {
+          defaultMeats.push(meatName);
+        } else {
+          additionalMeats.push(meatName);
+        }
+      });
+      
+      // Display default meats
+      if (defaultMeats.length > 0) {
+        pdf.setFont('helvetica', 'bold');
+        yPos = addWrappedText('DEFAULT MEATS:', margin, yPos, maxWidth, pdf, lineHeight);
+        
+        pdf.setFont('helvetica', 'normal');
+        const defaultMeatText = sanitizeText(defaultMeats.join(', '));
+        yPos = addWrappedText(defaultMeatText, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
+      }
+      
+      // Display additional meats
+      if (additionalMeats.length > 0) {
+        pdf.setFont('helvetica', 'bold');
+        yPos = addWrappedText('EXTRA MEATS:', margin, yPos, maxWidth, pdf, lineHeight);
+        
+        pdf.setFont('helvetica', 'normal');
+        const additionalMeatText = sanitizeText(additionalMeats.join(', '));
+        yPos = addWrappedText(additionalMeatText, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
+      }
+      
+      // Cheese information
       pdf.setFont('helvetica', 'normal');
-      const meats = sanitizeText(order.meat_selection).split(',').join(', ');
-      yPos = addWrappedText(meats, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
-      
       const cheeseText = order.has_cheese ? 'WITH CHEESE' : 'NO CHEESE';
       yPos = addWrappedText(cheeseText, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
       yPos += lineHeight * 0.5;
