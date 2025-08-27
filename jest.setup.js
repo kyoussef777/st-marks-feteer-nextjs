@@ -1,5 +1,13 @@
 import '@testing-library/jest-dom';
 
+// Add polyfills for Node.js global objects
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Simple mock for fetch (avoid complex polyfills for now)
+// global.fetch = jest.fn();
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {
@@ -71,13 +79,13 @@ Object.defineProperty(global, 'crypto', {
 });
 
 // Setup MSW for API mocking
-import { server } from './__tests__/mocks/server';
+// import { server } from './__tests__/mocks/server';
 
 // Establish API mocking before all tests
-beforeAll(() => server.listen());
+// beforeAll(() => server.listen());
 
 // Reset any request handlers that we may add during the tests
-afterEach(() => server.resetHandlers());
+// afterEach(() => server.resetHandlers());
 
 // Clean up after the tests are finished
-afterAll(() => server.close());
+// afterAll(() => server.close());
