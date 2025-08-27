@@ -279,17 +279,17 @@ async function insertDefaultData(db: sqlite3.Database) {
   if (menuCount.count === 0) {
     const defaultItems = [
       // Feteer items
-      ['feteer_type', 'Sweet (Custard and Sugar)', 'فطير حلو (كاسترد وسكر)', 8.0],
-      ['feteer_type', 'Mixed Meat', 'فطير باللحمة المشكلة', 12.0],
-      ['feteer_type', 'Mixed Cheese', 'فطير بالجبنة المشكلة', 10.0],
+      ['feteer_type', 'Feteer Helw (Custard w Sugar)', 'فطير حلو (كاسترد وسكر)', 8.0],
+      ['feteer_type', 'Feteer Lahma Meshakala', 'فطير باللحمة المشكلة', 12.0],
+      ['feteer_type', 'Feteer Gebna Meshakala', 'فطير بالجبنة المشكلة', 10.0],
       ['feteer_type', 'Feteer Meshaltet (Plain)', 'فطير مشلتت', 6.0],
       // Sweet items
       ['sweet_type', 'Basbousa', 'بسبوسة', 5.0],
-      ['sweet_type', 'Kunafa', 'كنافة', 7.0],
+      ['sweet_type', 'Konafa', 'كنافة', 7.0],
       ['sweet_type', 'Om Ali', 'أم علي', 6.0],
-      ['sweet_type', 'Baklava', 'بقلاوة', 4.0],
-      ['sweet_type', 'Muhallabia', 'مهلبية', 4.5],
-      ['sweet_type', 'Rice Pudding', 'رز بلبن', 4.0]
+      ['sweet_type', 'Baklawa', 'بقلاوة', 4.0],
+      ['sweet_type', 'Muhallabeya', 'مهلبية', 4.5],
+      ['sweet_type', 'Roz bel Laban', 'رز بلبن', 4.0]
     ];
 
     for (const [item_type, item_name, item_name_arabic, price] of defaultItems) {
@@ -340,7 +340,7 @@ async function insertDefaultData(db: sqlite3.Database) {
   const toppingsCount = await getQuery(db, 'SELECT COUNT(*) as count FROM extra_toppings');
   if (toppingsCount.count === 0) {
     const defaultToppings = [
-      ['Extra Nutella', 'نوتيلا إضافية', 2.0, 'Sweet (Custard and Sugar)']
+      ['Nutella Zeyada', 'نوتيلا إضافية', 2.0, 'Feteer Helw (Custard w Sugar)']
     ];
 
     for (const [name, name_arabic, price, feteer_type] of defaultToppings) {

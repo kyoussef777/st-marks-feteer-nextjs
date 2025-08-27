@@ -280,8 +280,8 @@ export default function OrdersList({ orders }: OrdersListProps) {
               </div>
             </div>
             
-            {/* Show meat selection for Mixed Meat */}
-            {order.feteer_type === 'Mixed Meat' && (
+            {/* Show meat selection for Feteer Lahma Meshakala */}
+            {order.feteer_type === 'Feteer Lahma Meshakala' && (
               <div className="bg-amber-50 rounded p-2 mb-1">
                 <div className="text-xs font-medium text-amber-900">
                   🥩 {order.meat_selection?.split(',').join(', ') || 'No meats'}

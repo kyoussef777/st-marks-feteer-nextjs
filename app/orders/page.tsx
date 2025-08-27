@@ -337,15 +337,15 @@ export default function OrdersPage() {
                         order.sweet_type === 'Muhallabia' ? 'مهلبية' :
                         order.sweet_type === 'Rice Pudding' ? 'رز بلبن' : 'حلوى'
                       ) : (
-                        order.feteer_type === 'Mixed Meat' ? 'لحمة مشكلة' :
-                        order.feteer_type === 'Sweet (Custard and Sugar)' ? 'حلو (كسترد وسكر)' :
+                        order.feteer_type === 'Feteer Lahma Meshakala' ? 'لحمة مشكلة' :
+                        order.feteer_type === 'Feteer Helw (Custard w Sugar)' ? 'حلو (كسترد وسكر)' :
                         order.feteer_type === 'Feteer Meshaltet (Plain)' ? 'فطير مشلتت سادة' : 'فطير'
                       )}
                     </div>
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    {order.item_type === 'feteer' && order.feteer_type === 'Mixed Meat' && (
+                    {order.item_type === 'feteer' && order.feteer_type === 'Feteer Lahma Meshakala' && (
                       <div className="bg-amber-50 rounded p-2 text-xs">
                         <span className="text-amber-900 font-medium">
                           🥩 {order.meat_selection?.split(',').join(', ') || 'No meats'}

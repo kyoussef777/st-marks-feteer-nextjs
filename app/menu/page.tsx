@@ -824,9 +824,9 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
   const [showAddForm, setShowAddForm] = useState(false);
 
   const feteerTypes = [
-    'Sweet (Custard and Sugar)',
-    'Mixed Meat',
-    'Mixed Cheese',
+    'Feteer Helw (Custard w Sugar)',
+    'Feteer Lahma Meshakala',
+    'Feteer Gebna Meshakala',
     'Feteer Meshaltet (Plain)',
     'All Types'
   ];

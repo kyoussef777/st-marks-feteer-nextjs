@@ -175,7 +175,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     pdf.setFontSize(12);
 
     // Feteer-specific details
-    if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Mixed Meat' && order.meat_selection) {
+    if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Feteer Lahma Meshakala' && order.meat_selection) {
       const selectedMeats = order.meat_selection.split(',').map(meat => meat.trim());
       
       // Based on UI logic: first 2 meats are "default", any additional are "extra"

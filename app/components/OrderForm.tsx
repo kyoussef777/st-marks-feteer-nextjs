@@ -121,8 +121,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       extra_nutella: false
     }));
 
-    setShowMeatOptions(feteerType === 'Mixed Meat');
-    setShowExtraToppings(feteerType === 'Sweet (Custard and Sugar)');
+    setShowMeatOptions(feteerType === 'Feteer Lahma Meshakala');
+    setShowExtraToppings(feteerType === 'Feteer Helw (Custard w Sugar)');
   }, []);
 
   const handleSweetQuantityChange = useCallback((sweetName: string, quantity: number) => {
@@ -176,8 +176,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       return;
     }
 
-    if (formData.feteer_type === 'Mixed Meat' && formData.meat_selection.length === 0) {
-      alert('Please select at least one meat for Mixed Meat feteer');
+    if (formData.feteer_type === 'Feteer Lahma Meshakala' && formData.meat_selection.length === 0) {
+      alert('Please select at least one meat for Feteer Lahma Meshakala');
       return;
     }
 
@@ -349,9 +349,9 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
 
   const getFeteerNameArabic = (feteerType: string) => {
     switch (feteerType) {
-      case 'Mixed Meat':
+      case 'Feteer Lahma Meshakala':
         return 'لحمة مشكلة';
-      case 'Sweet (Custard and Sugar)':
+      case 'Feteer Helw (Custard w Sugar)':
         return 'حلو (كسترد وسكر)';
       case 'Feteer Meshaltet (Plain)':
         return 'فطير مشلتت سادة';
@@ -555,11 +555,11 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           </div>
         )}
 
-        {/* Mixed Meat Configuration */}
+        {/* Feteer Lahma Meshakala Configuration */}
         {showMeatOptions && (
           <div className="bg-amber-50 rounded-lg p-3">
             <h3 className="text-sm font-semibold text-amber-900 mb-3">
-              Mixed Meat Configuration / إعداد اللحمة المشكلة
+              Feteer Lahma Meshakala Configuration / إعداد اللحمة المشكلة
             </h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
