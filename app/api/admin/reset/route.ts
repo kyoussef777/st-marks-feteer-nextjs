@@ -6,27 +6,28 @@ import { sql } from 'drizzle-orm';
 
 const DEFAULT_MENU_DATA = {
   feteer_types: [
-    { item_type: 'feteer', item_name: 'Plain Feteer', item_name_arabic: 'فطير سادة', price: 10 },
-    { item_type: 'feteer', item_name: 'Cheese Feteer', item_name_arabic: 'فطير بالجبنة', price: 15 },
-    { item_type: 'feteer', item_name: 'Mixed Meat', item_name_arabic: 'لحمة مشكلة', price: 25 },
+    { item_type: 'feteer', item_name: 'Feteer Meshaltet (Plain)', item_name_arabic: 'فطير مشلتت', price: 10 },
+    { item_type: 'feteer', item_name: 'Feteer Gebna Meshakala', item_name_arabic: 'فطير بالجبنة المشكلة', price: 15 },
+    { item_type: 'feteer', item_name: 'Feteer Lahma Meshakala', item_name_arabic: 'فطير باللحمة المشكلة', price: 25 },
   ],
   sweets: [
-    { item_type: 'sweet', item_name: 'Baklava', item_name_arabic: 'بقلاوة', price: 12 },
-    { item_type: 'sweet', item_name: 'Kunafa', item_name_arabic: 'كنافة', price: 15 },
+    { item_type: 'sweet', item_name: 'Baklawa', item_name_arabic: 'بقلاوة', price: 12 },
+    { item_type: 'sweet', item_name: 'Konafa', item_name_arabic: 'كنافة', price: 15 },
     { item_type: 'sweet', item_name: 'Basbousa', item_name_arabic: 'بسبوسة', price: 10 },
   ],
   meat_types: [
-    { name: 'Beef', name_arabic: 'لحم بقري', price: 5, is_default: true },
-    { name: 'Chicken', name_arabic: 'فراخ', price: 4, is_default: false },
-    { name: 'Lamb', name_arabic: 'لحم ضأن', price: 6, is_default: false },
+    { name: 'Sogoq Masri', name_arabic: 'سجق مصري', price: 0, is_default: true },
+    { name: 'Lahma Mafrouma', name_arabic: 'لحمة مفرومة', price: 0, is_default: true },
+    { name: 'Basterma', name_arabic: 'بسطرمة', price: 0, is_default: true },
+    { name: 'Farkha', name_arabic: 'فراخ', price: 0, is_default: false },
   ],
   cheese_types: [
-    { name: 'White Cheese', name_arabic: 'جبنة بيضا', price: 3 },
-    { name: 'Roquefort', name_arabic: 'ريكفورد', price: 5 },
+    { name: 'Gebna Beida', name_arabic: 'جبنة بيضاء', price: 3 },
+    { name: 'Gebna Roumi', name_arabic: 'جبنة رومي', price: 5 },
     { name: 'Mozzarella', name_arabic: 'موتزاريلا', price: 4 },
   ],
   extra_toppings: [
-    { name: 'Extra Nutella', name_arabic: 'نوتيلا إضافية', price: 2, feteer_type: 'Sweet Feteer' },
+    { name: 'Nutella Zeyada', name_arabic: 'نوتيلا إضافية', price: 2, feteer_type: 'Feteer Helw' },
   ]
 };
 
