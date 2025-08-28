@@ -10,10 +10,11 @@ export async function POST(request: NextRequest) {
     }
 
     const id = await createMenuItem({
-      item_type: 'sweet_type',
+      category: 'sweet',
       item_name,
       item_name_arabic: item_name_arabic || null,
-      price
+      price,
+      available: true
     });
 
     return NextResponse.json({ success: true, id });

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ButtonSpinner } from './LoadingSpinner';
+import { MeatType, CheeseType, ExtraTopping } from '@/types';
 
 interface FeteerType {
   id: number;
@@ -40,6 +41,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     additional_meat_selection: [] as string[],
     has_cheese: true,
     extra_nutella: false,
+    selected_toppings: [] as string[], // array of selected topping names
     notes: ''
   });
 
@@ -74,8 +76,18 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       // Additional meat costs
       price += formData.additional_meat_selection.length * 2.0;
 
-      // Extra toppings
-      if (formData.extra_nutella) {
+      // Extra toppings - calculate based on selected toppings
+      formData.selected_toppings.forEach(toppingName => {
+        const topping = menuData.extraToppings.find(t => t.name === toppingName);
+        if (topping && topping.price) {
+          price += topping.price;
+        }
+      });
+      
+      // Keep backward compatibility for extra_nutella
+      if (formData.extra_nutella && !formData.selected_toppings.some(t => 
+        menuData.extraToppings.some(et => et.name === t && et.name.toLowerCase().includes('nutella'))
+      )) {
         price += 2.0;
       }
     } else if (formData.item_type === 'sweet') {
@@ -105,7 +117,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       sweet_selections: {},
       meat_selection: [],
       additional_meat_selection: [],
-      extra_nutella: false
+      extra_nutella: false,
+      selected_toppings: []
     }));
     
     setShowMeatOptions(false);
@@ -118,7 +131,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       feteer_type: feteerType,
       meat_selection: [],
       additional_meat_selection: [],
-      extra_nutella: false
+      extra_nutella: false,
+      selected_toppings: []
     }));
 
     setShowMeatOptions(feteerType === 'Feteer Lahma Meshakala');
@@ -157,6 +171,15 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
     }
   };
 
+  const handleToppingSelection = (toppingName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selected_toppings: prev.selected_toppings.includes(toppingName)
+        ? prev.selected_toppings.filter(t => t !== toppingName)
+        : [...prev.selected_toppings, toppingName]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -190,6 +213,10 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         customer_name: formData.customer_name.trim() || (formData.item_type === 'sweet' ? 'Sweet Customer' : ''),
         meat_selection: [...formData.meat_selection, ...formData.additional_meat_selection],
         sweet_selections: formData.item_type === 'sweet' ? JSON.stringify(formData.sweet_selections) : undefined,
+        // Add selected toppings data
+        extra_toppings_selected: JSON.stringify(formData.selected_toppings),
+        // Keep backward compatibility - if any topping is selected, set extra_nutella to true
+        extra_nutella: formData.extra_nutella || formData.selected_toppings.length > 0,
         // Sweet orders go directly to completed since they are pre-made
         status: formData.item_type === 'sweet' ? 'completed' : 'ordered'
       };
@@ -228,6 +255,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         additional_meat_selection: [],
         has_cheese: true,
         extra_nutella: false,
+      selected_toppings: [],
         notes: ''
       });
       setShowMeatOptions(false);
@@ -302,7 +330,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
             }
           }
         } catch (fetchError) {
-          if (fetchError.name === 'AbortError') {
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
             console.warn(`Order check attempt ${attempts + 1} timed out`);
           } else {
             console.warn(`Order check attempt ${attempts + 1} failed:`, fetchError);
@@ -665,9 +693,9 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
                     <button
                       key={topping.id}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, extra_nutella: !prev.extra_nutella }))}
+                      onClick={() => handleToppingSelection(topping.name)}
                       className={`w-full p-2 border rounded text-left text-xs transition-all ${
-                        formData.extra_nutella
+                        formData.selected_toppings.includes(topping.name)
                           ? 'border-orange-500 bg-orange-100 text-orange-900'
                           : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
                       }`}

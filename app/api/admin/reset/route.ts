@@ -6,9 +6,10 @@ import { sql } from 'drizzle-orm';
 
 const DEFAULT_MENU_DATA = {
   feteer_types: [
-    { item_type: 'feteer_type', item_name: 'Feteer Meshaltet (Plain)', item_name_arabic: 'فطير مشلتت', price: 10 },
-    { item_type: 'feteer_type', item_name: 'Feteer Gebna Meshakala', item_name_arabic: 'فطير بالجبنة المشكلة', price: 15 },
+    { item_type: 'feteer_type', item_name: 'Feteer Meshaltet (Plain)', item_name_arabic: 'فطير مشلتت', price: 20 },
+    { item_type: 'feteer_type', item_name: 'Feteer Gebna Meshakala', item_name_arabic: 'فطير بالجبنة المشكلة', price: 20 },
     { item_type: 'feteer_type', item_name: 'Feteer Lahma Meshakala', item_name_arabic: 'فطير باللحمة المشكلة', price: 25 },
+    { item_type: 'feteer_type', item_name: 'Feteer Helw (Custard w Sugar)', item_name_arabic: 'فطير حلو (كسترد وسكر)', price: 20 },
   ],
   sweets: [
     { item_type: 'sweet_type', item_name: 'Baklawa', item_name_arabic: 'بقلاوة', price: 12 },
@@ -27,7 +28,7 @@ const DEFAULT_MENU_DATA = {
     { name: 'Mozzarella', name_arabic: 'موتزاريلا', price: 4 },
   ],
   extra_toppings: [
-    { name: 'Nutella Zeyada', name_arabic: 'نوتيلا إضافية', price: 2, feteer_type: 'Feteer Helw' },
+    { name: 'Nutella Zeyada', name_arabic: 'نوتيلا إضافية', price: 2, feteer_type: 'Feteer Helw (Custard w Sugar)' },
   ]
 };
 

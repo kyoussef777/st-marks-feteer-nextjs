@@ -4,17 +4,18 @@ import { createMenuItem } from '@/lib/database-hybrid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { item_name, item_name_arabic, price, item_type } = body;
+    const { item_name, item_name_arabic, price } = body;
 
     if (!item_name || price == null) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const id = await createMenuItem({
-      item_type: item_type || 'feteer_type',
+      category: 'feteer',
       item_name,
       item_name_arabic: item_name_arabic || null,
-      price
+      price,
+      available: true
     });
 
     return NextResponse.json({ id }, { status: 201 });

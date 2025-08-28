@@ -65,7 +65,8 @@ export interface ExtraTopping {
   name: string;
   name_arabic: string;
   price: number;
-  available: boolean;
+  available?: boolean;
+  feteer_type?: string;
 }
 
 export interface SweetSelection {
