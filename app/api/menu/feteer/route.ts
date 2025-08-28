@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMenuItem } from '@/lib/database-hybrid';
+import { createMenuItem } from '@/lib/database-neon';
 
 export async function POST(request: NextRequest) {
   try {

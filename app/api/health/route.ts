@@ -1,27 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database';
+import { getDatabase } from '@/lib/database-neon';
+import { sql } from 'drizzle-orm';
 
 export async function GET() {
   try {
     // Check database connectivity
-    const db = await getDatabase();
+    const db = getDatabase();
     
     // Simple query to verify database is accessible
-    await new Promise<{ status: number }>((resolve, reject) => {
-      db.get('SELECT 1 as status', [], (err: Error | null, row: { status: number }) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+    await db.execute(sql`SELECT 1 as status`);
 
     // If we get here, everything is working
     return NextResponse.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      database: 'connected',
+      database: 'neon-connected',
       environment: process.env.NODE_ENV || 'unknown'
     }, { status: 200 });
 
@@ -31,7 +24,7 @@ export async function GET() {
     return NextResponse.json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      database: 'disconnected',
+      database: 'neon-disconnected',
       error: error instanceof Error ? error.message : 'Unknown error',
       environment: process.env.NODE_ENV || 'unknown'
     }, { status: 503 });

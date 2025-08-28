@@ -7,7 +7,7 @@
   },
   "overrides": [
     {
-      "files": ["lib/database.ts", "lib/database-neon.ts", "lib/database-hybrid.ts", "lib/schema.ts"],
+      "files": ["lib/database-neon.ts", "lib/schema.ts"],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off"
       }

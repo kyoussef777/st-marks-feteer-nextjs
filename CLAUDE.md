@@ -32,16 +32,13 @@ npm run db:studio    # Open Drizzle Studio (database browser)
 
 ## Architecture Overview
 
-### Database Architecture - Hybrid System
-The app uses a **hybrid database approach** (`/lib/database-hybrid.ts`) that automatically:
-- **Primary**: Neon PostgreSQL for production/Vercel deployment
-- **Fallback**: SQLite for local development when Neon is unavailable
-- **Auto-detection**: Checks `DATABASE_URL` validity and falls back gracefully
+### Database Architecture - Neon PostgreSQL
+The app uses **Neon PostgreSQL** exclusively for all environments:
+- **Production and Development**: Neon PostgreSQL for all operations
+- **No fallback**: Direct connection to Neon database only
 
 **Database modules:**
-- `/lib/database-hybrid.ts` - Main hybrid implementation (use this for all new features)
-- `/lib/database-neon.ts` - Neon PostgreSQL implementation  
-- `/lib/database.ts` - SQLite fallback implementation
+- `/lib/database-neon.ts` - Main Neon PostgreSQL implementation (use this for all new features)
 - `/lib/schema.ts` - Drizzle ORM schema definitions
 
 ### Bilingual UI Pattern
@@ -111,8 +108,8 @@ The app supports multiple deployment methods:
 ## Database Migration Notes
 
 The app was migrated from SQLite to PostgreSQL but maintains backward compatibility. When working with database code:
-- **Always import from `/lib/database-hybrid.ts`** (not database-neon.ts or database.ts)
-- The hybrid system handles database selection automatically
+- **Always import from `/lib/database-neon.ts`** 
+- All database operations use Neon PostgreSQL directly
 - Schema is defined in `/lib/schema.ts` using Drizzle ORM
 - Seed data includes default feteer types, sweets, meats, and cheese options
 

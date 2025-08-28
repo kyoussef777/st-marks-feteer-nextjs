@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCheeseTypes, createCheeseType } from '@/lib/database-hybrid';
+import { getCheeseTypes, createCheeseType } from '@/lib/database-neon';
 import { withAuth } from '@/lib/apiAuth';
 
 export const GET = withAuth(async () => {

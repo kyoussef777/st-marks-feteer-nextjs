@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getExtraToppings, createExtraTopping } from '@/lib/database-hybrid';
+import { getExtraToppings, createExtraTopping } from '@/lib/database-neon';
 import { withAuth } from '@/lib/apiAuth';
 
 export const GET = withAuth(async () => {

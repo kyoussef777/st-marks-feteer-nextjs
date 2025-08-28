@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateMenuItem, deleteMenuItem } from '@/lib/database-hybrid';
+import { updateMenuItem, deleteMenuItem } from '@/lib/database-neon';
 
 export async function PUT(
   request: NextRequest,

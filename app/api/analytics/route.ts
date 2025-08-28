@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrdersInDateRange } from '@/lib/database-hybrid';
+import { getOrdersInDateRange } from '@/lib/database-neon';
 
 export async function GET(request: NextRequest) {
   try {

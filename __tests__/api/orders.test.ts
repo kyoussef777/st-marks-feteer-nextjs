@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { NextRequest } from 'next/server';
 
 // Mock the database and auth
-jest.mock('../../lib/database-hybrid', () => ({
+jest.mock('../../lib/database-neon', () => ({
   db: {
     select: jest.fn(),
     insert: jest.fn(),

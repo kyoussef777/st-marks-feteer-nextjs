@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { users, type User } from './schema';
-import { getDbInstance } from './database-hybrid';
+import { getDatabase } from './database-neon';
 
 // Auth configuration from environment variables - NO DEFAULTS IN PRODUCTION
 const AUTH_CONFIG = {
@@ -36,7 +36,7 @@ export interface AuthUser {
  */
 export async function verifyCredentials(username: string, password: string): Promise<User | null> {
   try {
-    const db = await getDbInstance();
+    const db = getDatabase();
     
     // Find user by username
     const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
@@ -208,7 +208,7 @@ export function canAccessOrders(user: AuthUser | null): boolean {
  */
 export async function createUser(username: string, password: string, role: 'admin' | 'cashier'): Promise<User> {
   try {
-    const db = await getDbInstance();
+    const db = getDatabase();
     
     // Check if username already exists
     const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
@@ -239,7 +239,7 @@ export async function createUser(username: string, password: string, role: 'admi
  */
 export async function getAllUsers(): Promise<User[]> {
   try {
-    const db = await getDbInstance();
+    const db = getDatabase();
     return await db.select({
       id: users.id,
       username: users.username,
@@ -259,7 +259,7 @@ export async function getAllUsers(): Promise<User[]> {
  */
 export async function updateUserStatus(userId: number, isActive: boolean): Promise<void> {
   try {
-    const db = await getDbInstance();
+    const db = getDatabase();
     await db.update(users)
       .set({ is_active: isActive })
       .where(eq(users.id, userId));
@@ -274,7 +274,7 @@ export async function updateUserStatus(userId: number, isActive: boolean): Promi
  */
 export async function deleteUser(userId: number): Promise<void> {
   try {
-    const db = await getDbInstance();
+    const db = getDatabase();
     await db.delete(users).where(eq(users.id, userId));
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -291,7 +291,7 @@ export async function initializeDefaultAdmin(): Promise<void> {
       return; // Skip if env vars not set
     }
 
-    const db = await getDbInstance();
+    const db = getDatabase();
     
     // Check if admin user already exists
     const existing = await db.select().from(users).where(eq(users.username, AUTH_CONFIG.username)).limit(1);

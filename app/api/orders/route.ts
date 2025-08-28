@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createOrder, getAllOrders, getOrdersByStatus, getMenuConfig, getSweetTypes } from '@/lib/database-hybrid';
+import { createOrder, getAllOrders, getOrdersByStatus, getMenuConfig, getSweetTypes } from '@/lib/database-neon';
 import { withAuth } from '@/lib/apiAuth';
 
 export const GET = withAuth(async (request) => {

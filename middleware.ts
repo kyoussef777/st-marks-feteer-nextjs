@@ -34,6 +34,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow label printing and debug endpoints without auth for development
+  if (pathname.match(/^\/api\/orders\/\d+\/label$/) || pathname.startsWith('/api/debug/')) {
+    return NextResponse.next();
+  }
+
   // Check for auth token and get user info
   const user = await isAuthenticated(request);
 

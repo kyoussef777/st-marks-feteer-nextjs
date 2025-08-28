@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateCheeseType, deleteCheeseType } from '@/lib/database-hybrid';
+import { updateCheeseType, deleteCheeseType } from '@/lib/database-neon';
 import { withAuth } from '@/lib/apiAuth';
 
 export const PUT = withAuth(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateOrderStatus, deleteOrder, getOrderById } from '@/lib/database-hybrid';
+import { updateOrderStatus, deleteOrder, getOrderById } from '@/lib/database-neon';
 import { withAuth } from '@/lib/apiAuth';
 
 export const GET = withAuth(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {

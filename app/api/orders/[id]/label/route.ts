@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrderById } from '@/lib/database-hybrid';
+import { getOrderById } from '@/lib/database-neon';
 import jsPDF from 'jspdf';
 
 interface OrderWithSweets {

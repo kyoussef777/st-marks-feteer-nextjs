@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllOrders } from '@/lib/database-hybrid';
+import { getAllOrders } from '@/lib/database-neon';
 
 export async function GET(request: NextRequest) {
   try {

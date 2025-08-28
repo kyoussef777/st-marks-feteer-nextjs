@@ -14,7 +14,7 @@ jest.mock('bcryptjs', () => ({
 }));
 
 // Mock database
-jest.mock('../../lib/database-hybrid', () => ({
+jest.mock('../../lib/database-neon', () => ({
   db: {
     select: jest.fn(),
     insert: jest.fn(),
@@ -125,7 +125,7 @@ describe('Auth Module', () => {
 
   it('should authenticate user with valid credentials', async () => {
     const bcrypt = await import('bcryptjs');
-    const { db } = await import('../../lib/database-hybrid');
+    const { db } = await import('../../lib/database-neon');
     const { authenticateUser } = await import('../../lib/auth');
     
     const mockUser = {
@@ -156,7 +156,7 @@ describe('Auth Module', () => {
 
   it('should return null for invalid credentials', async () => {
     const bcrypt = await import('bcryptjs');
-    const { db } = await import('../../lib/database-hybrid');
+    const { db } = await import('../../lib/database-neon');
     const { authenticateUser } = await import('../../lib/auth');
     
     (db.select as jest.MockedFunction<any>).mockReturnValue({

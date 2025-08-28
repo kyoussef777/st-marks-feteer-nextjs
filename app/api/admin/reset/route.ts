@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticated, isAdmin } from '@/lib/auth';
-import { getDbInstance } from '@/lib/database-hybrid';
+import { getDatabase } from '@/lib/database-neon';
 import { orders, menu_config, meat_types, cheese_types, extra_toppings } from '@/lib/schema';
 import { sql } from 'drizzle-orm';
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { resetOrders, resetMenu } = body;
 
-    const db = await getDbInstance();
+    const db = getDatabase();
 
     const results = [];
 
