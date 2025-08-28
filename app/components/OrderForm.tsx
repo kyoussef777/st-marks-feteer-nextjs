@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ButtonSpinner } from './LoadingSpinner';
 import { MeatType, CheeseType, ExtraTopping } from '@/types';
+import { printOrderLabel } from '@/lib/print-utils';
 
 interface FeteerType {
   id: number;
@@ -352,21 +353,8 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       // Additional small delay to ensure label API is ready
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Open the PDF label in a new window
-      const labelUrl = `/api/orders/${newOrderData.id}/label`;
-      const printWindow = window.open(labelUrl, '_blank');
-      
-      if (printWindow) {
-        // Wait for the PDF to load, then trigger print
-        printWindow.onload = () => {
-          setTimeout(() => {
-            printWindow.print();
-          }, 1000);
-        };
-      } else {
-        // Fallback: direct download if popup blocked
-        window.location.href = labelUrl;
-      }
+      // Use the shared print utility with popup and auto-close functionality
+      await printOrderLabel(newOrderData.id);
     } catch (error) {
       console.error('Error printing order:', error);
       alert('Failed to print order label. Please try again.');

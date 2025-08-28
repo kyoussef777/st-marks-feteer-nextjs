@@ -57,11 +57,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Create PDF label - increased height to prevent clipping
+    // Create PDF label - 62mm x 100mm thermal label
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: [100, 180] // 100mm x 180mm label (increased height)
+      format: [62, 100] // 62mm x 100mm label
     });
 
     // Function to sanitize text and remove Arabic characters
@@ -131,12 +131,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Set fonts
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(18);
+    pdf.setFontSize(22); // Increased from 18
 
-    let yPos = 20;
-    const margin = 10;
-    const lineHeight = 8;
-    const maxWidth = 80; // mm - maximum width for text
+    let yPos = 15;
+    const margin = 8;
+    const lineHeight = 9; // Adjusted for smaller label
+    const maxWidth = 46; // mm - maximum width for text (62 - 2*8 margin)
 
     // Customer name (main title) - with wrapping
     const customerText = `#${order.id} - ${sanitizeText(order.customer_name)}`;
@@ -144,7 +144,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     yPos += lineHeight * 0.5;
 
     // Item type and name - with wrapping
-    pdf.setFontSize(14);
+    pdf.setFontSize(18); // Increased from 14
     let itemText = '';
     
     if (order.item_type === 'sweet') {
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Order details
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(12);
+    pdf.setFontSize(16); // Increased from 12
 
     // Feteer-specific details
     if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Feteer Lahma Meshakala' && order.meat_selection) {
@@ -256,30 +256,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         yPos = addWrappedText('SPECIAL NOTES:', margin, yPos, maxWidth, pdf, lineHeight);
         
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(11);
+        pdf.setFontSize(14); // Increased from 11
         yPos = addWrappedText(sanitizedNotes, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
         yPos += lineHeight * 0.5;
       }
     }
 
     // Ensure we don't exceed the label height
-    const minBottomSpace = 30; // Reserve space for price and footer
-    if (yPos > 180 - minBottomSpace) {
-      yPos = 180 - minBottomSpace;
+    const minBottomSpace = 20; // Reserve space for price and footer
+    if (yPos > 100 - minBottomSpace) {
+      yPos = 100 - minBottomSpace;
     }
 
     // Add a separator line before the footer
     pdf.setLineWidth(0.5);
-    pdf.line(margin, yPos + 5, 100 - margin, yPos + 5);
+    pdf.line(margin, yPos + 5, 62 - margin, yPos + 5);
     yPos += 15;
 
     // Price and status at bottom
-    pdf.setFontSize(14);
+    pdf.setFontSize(18); // Increased from 14
     pdf.setFont('helvetica', 'bold');
     yPos = addWrappedText(`TOTAL: $${(order.price ?? 0).toFixed(2)}`, margin, yPos, maxWidth, pdf, lineHeight);
     
     // Timestamp (converted to EST)
-    pdf.setFontSize(10);
+    pdf.setFontSize(12); // Increased from 10
     pdf.setFont('helvetica', 'bold');
     const date = new Date(order.created_at);
     const estDate = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}));
