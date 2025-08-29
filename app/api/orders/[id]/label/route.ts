@@ -131,20 +131,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Set fonts
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(22); // Increased from 18
+    pdf.setFontSize(12); // Reduced for better fit
 
-    let yPos = 15;
-    const margin = 8;
-    const lineHeight = 9; // Adjusted for smaller label
+    let yPos = 5;
+    const margin = 5;
+    const lineHeight = 8; // Adjusted for smaller text
     const maxWidth = 46; // mm - maximum width for text (62 - 2*8 margin)
 
     // Customer name (main title) - with wrapping
     const customerText = `#${order.id} - ${sanitizeText(order.customer_name)}`;
     yPos = addWrappedText(customerText, margin, yPos, maxWidth, pdf, lineHeight);
-    yPos += lineHeight * 0.5;
+    yPos += lineHeight * 0.2;
 
     // Item type and name - with wrapping
-    pdf.setFontSize(18); // Increased from 14
+    pdf.setFontSize(10); // Reduced for better fit
     let itemText = '';
     
     if (order.item_type === 'sweet') {
@@ -164,15 +164,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         itemText = `SWEET: ${sanitizeText(order.sweet_type || '')}`;
       }
     } else {
-      itemText = `FETEER: ${sanitizeText(order.feteer_type || '')}`;
+      itemText = `${sanitizeText(order.feteer_type || '')}`;
     }
     
     yPos = addWrappedText(itemText, margin, yPos, maxWidth, pdf, lineHeight);
-    yPos += lineHeight * 0.5;
+    yPos += lineHeight * 0.3;
 
     // Order details
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(16); // Increased from 12
+    pdf.setFontSize(9); // Reduced for better fit
 
     // Feteer-specific details
     if (order.item_type === 'feteer' && sanitizeText(order.feteer_type || '') === 'Feteer Lahma Meshakala' && order.meat_selection) {
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       pdf.setFont('helvetica', 'normal');
       const cheeseText = order.has_cheese ? 'WITH CHEESE' : 'NO CHEESE';
       yPos = addWrappedText(cheeseText, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
-      yPos += lineHeight * 0.5;
+      yPos += lineHeight * 0.2;
     }
 
     // Sweet-specific details
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (order.extra_nutella) {
       pdf.setFont('helvetica', 'bold');
       yPos = addWrappedText('EXTRA TOPPINGS:', margin, yPos, maxWidth, pdf, lineHeight);
-      
+       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
       yPos = addWrappedText('• Extra Nutella (+$2.00)', margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
       yPos += lineHeight * 0.5;
@@ -256,7 +256,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         yPos = addWrappedText('SPECIAL NOTES:', margin, yPos, maxWidth, pdf, lineHeight);
         
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(14); // Increased from 11
+        pdf.setFontSize(9); // Reduced for better fit
         yPos = addWrappedText(sanitizedNotes, margin + 5, yPos, maxWidth - 5, pdf, lineHeight);
         yPos += lineHeight * 0.5;
       }
@@ -274,12 +274,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     yPos += 15;
 
     // Price and status at bottom
-    pdf.setFontSize(18); // Increased from 14
+    pdf.setFontSize(14); // Reduced for better fit
     pdf.setFont('helvetica', 'bold');
     yPos = addWrappedText(`TOTAL: $${(order.price ?? 0).toFixed(2)}`, margin, yPos, maxWidth, pdf, lineHeight);
     
     // Timestamp (converted to EST)
-    pdf.setFontSize(12); // Increased from 10
+    pdf.setFontSize(10); // Reduced for better fit
     pdf.setFont('helvetica', 'bold');
     const date = new Date(order.created_at);
     const estDate = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}));
