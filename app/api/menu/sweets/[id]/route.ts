@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateMenuItem, deleteMenuItem } from '@/lib/database-neon';
+import { withAuth } from '@/lib/apiAuth';
 
-export async function PUT(
+export const PUT = withAuth(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id: paramId } = await params;
     const { item_name, item_name_arabic, price } = await request.json();
@@ -25,12 +26,12 @@ export async function PUT(
     console.error('Error updating sweet:', error);
     return NextResponse.json({ error: 'Failed to update sweet' }, { status: 500 });
   }
-}
+});
 
-export async function DELETE(
+export const DELETE = withAuth(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id: paramId } = await params;
     const id = parseInt(paramId);
@@ -46,4 +47,4 @@ export async function DELETE(
     console.error('Error deleting sweet:', error);
     return NextResponse.json({ error: 'Failed to delete sweet' }, { status: 500 });
   }
-}
+});

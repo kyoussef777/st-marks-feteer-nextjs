@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateMenuItem, deleteMenuItem } from '@/lib/database-neon';
+import { withAuth } from '@/lib/apiAuth';
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = withAuth(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -17,22 +18,22 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       price
     });
 
-    return NextResponse.json({ message: 'Item updated successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating menu item:', error);
     return NextResponse.json({ error: 'Failed to update menu item' }, { status: 500 });
   }
-}
+});
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withAuth(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const { id } = await params;
     
     await deleteMenuItem(parseInt(id));
 
-    return NextResponse.json({ message: 'Item deleted successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting menu item:', error);
     return NextResponse.json({ error: 'Failed to delete menu item' }, { status: 500 });
   }
-}
+});
