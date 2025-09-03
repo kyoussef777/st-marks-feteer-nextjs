@@ -78,6 +78,12 @@ export async function GET(request: NextRequest) {
     const dateMap: { [key: string]: { orders: number; revenue: number } } = {};
 
     orders.forEach(order => {
+      // Handle undefined or null created_at
+      if (!order.created_at) {
+        console.warn('Order missing created_at:', order.id);
+        return;
+      }
+      
       const date = typeof order.created_at === 'string' 
         ? order.created_at.split('T')[0]
         : order.created_at.toISOString().split('T')[0];

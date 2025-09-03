@@ -13,7 +13,7 @@ interface Order {
   item_type: 'feteer' | 'sweet';
   feteer_type?: string;
   sweet_type?: string;
-  sweet_selections?: string; // JSON string for multiple sweets
+  sweet_selections?: string; // JSON string for multiple sweets (original format)
   meat_selection?: string;
   has_cheese: boolean;
   extra_nutella: boolean;

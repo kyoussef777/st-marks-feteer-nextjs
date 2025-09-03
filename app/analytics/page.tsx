@@ -462,33 +462,6 @@ export default function AnalyticsPage() {
 
       {/* Charts and Tables */}
       <div className="space-y-4 sm:space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-8">
-        {/* Popular Items */}
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
-          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-            Popular Items (Feteer & Sweets)
-            <span className="block text-sm sm:text-lg font-arabic text-gray-600">الأصناف الأكثر طلباً - فطير وحلويات</span>
-          </h2>
-          <div className="space-y-2 sm:space-y-4">
-            {Object.entries(analytics.popularItems)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([item, count]) => (
-                <div key={item} className="flex justify-between items-center p-2 sm:p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium text-gray-900 text-sm sm:text-base truncate flex-1 mr-2">{item}</span>
-                  <div className="flex items-center">
-                    <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2 mr-2 sm:mr-3">
-                      <div 
-                        className="bg-amber-600 h-2 rounded-full" 
-                        style={{ width: `${(count / Math.max(...Object.values(analytics.popularItems))) * 100}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm sm:text-lg font-bold text-amber-600">{count}</span>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-
         {/* Top Customers */}
         <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
           <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
@@ -497,6 +470,7 @@ export default function AnalyticsPage() {
           </h2>
           <div className="space-y-4">
             {Object.entries(analytics.topCustomers)
+              .filter(([customer]) => customer !== 'Sweet Customer' && !customer.toLowerCase().includes('default'))
               .sort((a, b) => b[1] - a[1])
               .slice(0, 5)
               .map(([customer, count]) => (
