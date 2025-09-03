@@ -4,20 +4,23 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
+import { useLanguage } from './LanguageProvider';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   // Filter navigation based on user role
   const allNavigation = [
-    { name: 'New Orders', nameAr: 'طلبات جديدة', href: '/', icon: '🍽️', roles: ['admin', 'cashier'] },
-    { name: 'All Orders', nameAr: 'كل الطلبات', href: '/orders', icon: '📋', roles: ['admin', 'cashier'] },
-    { name: 'Menu Editor', nameAr: 'تحرير القائمة', href: '/menu', icon: '📝', roles: ['admin', 'cashier'] },
-    { name: 'Analytics', nameAr: 'التحليلات', href: '/analytics', icon: '📊', roles: ['admin'] },
-    { name: 'Admin Panel', nameAr: 'لوحة الإدارة', href: '/admin', icon: '⚙️', roles: ['admin'] }
+    { nameEn: 'New Feteer Orders', nameAr: 'طلبات فطير جديدة', href: '/new-orders/feteer', icon: '🥞', roles: ['admin', 'cashier'] },
+    { nameEn: 'New Sweet Orders', nameAr: 'طلبات حلويات جديدة', href: '/new-orders/sweets', icon: '🍯', roles: ['admin', 'cashier'] },
+    { nameEn: 'Feteer Orders', nameAr: 'طلبات الفطير', href: '/orders/feteer', icon: '📋', roles: ['admin', 'cashier'] },
+    { nameEn: 'Menu', nameAr: 'تحرير القائمة', href: '/menu', icon: '📝', roles: ['admin', 'cashier'] },
+    { nameEn: 'Analytics', nameAr: 'التحليلات', href: '/analytics', icon: '📊', roles: ['admin'] },
+    { nameEn: 'Admin', nameAr: 'لوحة الإدارة', href: '/admin', icon: '⚙️', roles: ['admin'] }
   ];
 
   const navigation = allNavigation.filter(item => 
@@ -39,12 +42,8 @@ export default function Navbar() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="block text-sm lg:text-xl font-bold tracking-wide group-hover:text-amber-200 transition-colors truncate">
-                    St. Mark&apos;s Sweets
+                    {t("St. Mark's Sweets", "حلويات وفطير القديس مرقس")}
                   </span>
-                  <span className="hidden lg:block font-arabic-large opacity-90 group-hover:opacity-100 transition-opacity text-white">
-                    حلويات وفطير مارك الإسكندرية
-                  </span>
-
                 </div>
               </div>
             </Link>
@@ -56,15 +55,14 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex flex-col items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                className={`group flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                   pathname === item.href
                     ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
                     : 'text-amber-100 hover:bg-white/10 hover:text-white hover:backdrop-blur-sm'
                 }`}
               >
-                <span className="text-xl mb-1 group-hover:scale-110 transition-transform duration-300">{item.icon}</span>
-                <span className="font-semibold">{item.name}</span>
-                <span className="font-arabic opacity-80 group-hover:opacity-100 transition-opacity">{item.nameAr}</span>
+                <span className="text-xl mr-2 group-hover:scale-110 transition-transform duration-300">{item.icon}</span>
+                <span className="font-semibold whitespace-nowrap">{t(item.nameEn, item.nameAr)}</span>
               </Link>
             ))}
             
@@ -88,6 +86,40 @@ export default function Navbar() {
                     <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                     <p className="text-xs text-gray-500 font-arabic">مرحبا بك</p>
                   </div>
+                  
+                  {/* Language Toggle */}
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-xs text-gray-500 mb-2">{t('Language', 'اللغة')}</p>
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={() => {
+                          setLanguage('en');
+                          setShowUserMenu(false);
+                        }}
+                        className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                          language === 'en' 
+                            ? 'bg-amber-100 text-amber-800 font-medium' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        English
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLanguage('ar');
+                          setShowUserMenu(false);
+                        }}
+                        className={`px-3 py-1 text-xs rounded-md transition-colors font-arabic ${
+                          language === 'ar' 
+                            ? 'bg-amber-100 text-amber-800 font-medium' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        العربية
+                      </button>
+                    </div>
+                  </div>
+                  
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -96,8 +128,7 @@ export default function Navbar() {
                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center"
                   >
                     <span className="mr-2">🚪</span>
-                    Sign Out
-                    <span className="ml-auto font-arabic text-xs">خروج</span>
+                    {t('Sign Out', 'خروج')}
                   </button>
                 </div>
               )}
@@ -154,12 +185,44 @@ export default function Navbar() {
                 >
                   <span className="text-2xl mr-4">{item.icon}</span>
                   <div className="flex-1">
-                    <div className="font-semibold">{item.name}</div>
-                    <div className="font-arabic opacity-80">{item.nameAr}</div>
+                    <div className="font-semibold">{t(item.nameEn, item.nameAr)}</div>
                   </div>
                 </Link>
               ))}
               
+              {/* Mobile Language Toggle */}
+              <div className="px-4 py-4 border-t border-white/20">
+                <p className="text-sm text-amber-200 mb-3">{t('Language', 'اللغة')}</p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      setLanguage('en');
+                      setIsOpen(false);
+                    }}
+                    className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
+                      language === 'en' 
+                        ? 'bg-white/20 text-white font-medium' 
+                        : 'bg-white/5 text-amber-200 hover:bg-white/10'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLanguage('ar');
+                      setIsOpen(false);
+                    }}
+                    className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors font-arabic ${
+                      language === 'ar' 
+                        ? 'bg-white/20 text-white font-medium' 
+                        : 'bg-white/5 text-amber-200 hover:bg-white/10'
+                    }`}
+                  >
+                    العربية
+                  </button>
+                </div>
+              </div>
+
               {/* Mobile Logout */}
               <button
                 onClick={() => {
@@ -170,8 +233,7 @@ export default function Navbar() {
               >
                 <span className="text-2xl mr-4">🚪</span>
                 <div className="flex-1 text-left">
-                  <div className="font-semibold">Sign Out</div>
-                  <div className="font-arabic opacity-80">خروج</div>
+                  <div className="font-semibold">{t('Sign Out', 'خروج')}</div>
                 </div>
               </button>
             </div>

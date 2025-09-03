@@ -107,7 +107,7 @@ export const POST = withAuth(async (request) => {
       has_cheese: body.has_cheese === true || body.has_cheese === 'true',
       extra_nutella: body.extra_nutella === true || body.extra_nutella === 'true',
       notes: body.notes?.trim() || null,
-      status: body.status || 'ordered' as const,
+      status: body.status || (body.item_type === 'sweet' ? 'completed' : 'ordered') as const,
       price: Math.round(price * 100) / 100 // Round to 2 decimal places
     };
 

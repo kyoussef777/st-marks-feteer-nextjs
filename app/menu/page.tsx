@@ -26,6 +26,8 @@ interface ExtraTopping {
   name_arabic?: string;
   price: number;
   feteer_type?: string;
+  sweet_type?: string;
+  item_type?: string; // 'feteer' or 'sweet'
 }
 
 export default function MenuEditor() {
@@ -123,7 +125,12 @@ export default function MenuEditor() {
           <MeatTypesEditor items={meatTypes} onUpdate={fetchMenuData} />
         )}
         {activeTab === 'toppings' && (
-          <ToppingsEditor items={extraToppings} onUpdate={fetchMenuData} />
+          <ToppingsEditor 
+            items={extraToppings} 
+            sweetTypes={sweetTypes}
+            feteerTypes={feteerTypes}
+            onUpdate={fetchMenuData} 
+          />
         )}
       </div>
     </div>
@@ -818,18 +825,20 @@ function EditableMeatRow({ item, onSave, onCancel }: {
 }
 
 
-function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: () => void }) {
+function ToppingsEditor({ items, sweetTypes, feteerTypes, onUpdate }: { 
+  items: ExtraTopping[], 
+  sweetTypes: MenuItem[],
+  feteerTypes: MenuItem[],
+  onUpdate: () => void 
+}) {
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [newItem, setNewItem] = useState({ name: '', name_arabic: '', price: 0, feteer_type: '' });
+  const [newItem, setNewItem] = useState({ name: '', name_arabic: '', price: 0, feteer_type: '', sweet_type: '', item_type: 'feteer' });
   const [showAddForm, setShowAddForm] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState('feteer'); // 'feteer' or 'sweet'
 
-  const feteerTypes = [
-    'Feteer Helw (Custard w Sugar)',
-    'Feteer Lahma Meshakala',
-    'Feteer Gebna Meshakala',
-    'Feteer Meshaltet (Plain)',
-    'All Types'
-  ];
+  // Convert database items to dropdown options
+  const feteerTypeOptions = [...feteerTypes.map(item => item.item_name), 'All Feteer Types'];
+  const sweetTypeOptions = [...sweetTypes.map(item => item.item_name), 'All Sweet Types'];
 
   const handleEdit = (item: ExtraTopping) => {
     setEditingId(item.id || 0);
@@ -872,7 +881,7 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
         body: JSON.stringify(newItem)
       });
       if (response.ok) {
-        setNewItem({ name: '', name_arabic: '', price: 0, feteer_type: '' });
+        setNewItem({ name: '', name_arabic: '', price: 0, feteer_type: '', sweet_type: '', item_type: 'feteer' });
         setShowAddForm(false);
         onUpdate();
       }
@@ -880,6 +889,15 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
       console.error('Error adding topping:', error);
     }
   };
+
+  // Filter items based on active sub tab
+  const filteredItems = items.filter(item => {
+    if (activeSubTab === 'feteer') {
+      return !item.item_type || item.item_type === 'feteer';
+    } else {
+      return item.item_type === 'sweet';
+    }
+  });
 
   return (
     <div>
@@ -899,9 +917,55 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
         </button>
       </div>
 
+      {/* Sub-tabs for Feteer and Sweet toppings */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => {
+              setActiveSubTab('feteer');
+              setNewItem(prev => ({ ...prev, item_type: 'feteer', sweet_type: '', feteer_type: '' }));
+            }}
+            className={`px-6 py-2 rounded-md transition-all ${
+              activeSubTab === 'feteer'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'text-amber-600 hover:bg-amber-50'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span>🥞</span>
+              <div className="text-center">
+                <div className="text-sm">Feteer Toppings</div>
+                <div className="font-arabic text-xs">إضافات الفطير</div>
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              setActiveSubTab('sweet');
+              setNewItem(prev => ({ ...prev, item_type: 'sweet', feteer_type: '', sweet_type: '' }));
+            }}
+            className={`px-6 py-2 rounded-md transition-all ${
+              activeSubTab === 'sweet'
+                ? 'bg-pink-600 text-white shadow-md'
+                : 'text-pink-600 hover:bg-pink-50'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span>🍯</span>
+              <div className="text-center">
+                <div className="text-sm">Sweet Toppings</div>
+                <div className="font-arabic text-xs">إضافات الحلويات</div>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {showAddForm && (
         <div className="card-enhanced rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Add New Extra Topping</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            Add New {activeSubTab === 'feteer' ? 'Feteer' : 'Sweet'} Topping
+          </h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             <input
               type="text"
@@ -925,16 +989,29 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
               onChange={(e) => setNewItem(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
               className="form-input"
             />
-            <select
-              value={newItem.feteer_type}
-              onChange={(e) => setNewItem(prev => ({ ...prev, feteer_type: e.target.value }))}
-              className="form-input"
-            >
-              <option value="">Select Feteer Type</option>
-              {feteerTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+            {activeSubTab === 'feteer' ? (
+              <select
+                value={newItem.feteer_type}
+                onChange={(e) => setNewItem(prev => ({ ...prev, feteer_type: e.target.value }))}
+                className="form-input"
+              >
+                <option value="">Select Feteer Type</option>
+                {feteerTypeOptions.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={newItem.sweet_type}
+                onChange={(e) => setNewItem(prev => ({ ...prev, sweet_type: e.target.value }))}
+                className="form-input"
+              >
+                <option value="">Select Sweet Type</option>
+                {sweetTypeOptions.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleAdd}
@@ -961,14 +1038,15 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
 
       {/* Current toppings */}
       <div className="space-y-4">
-        {items.length > 0 ? items.map((item) => (
+        {filteredItems.length > 0 ? filteredItems.map((item) => (
           <div key={item.id} className="card-enhanced rounded-lg p-4">
             {editingId === item.id ? (
               <EditableToppingRow
                 item={item}
                 onSave={handleSave}
                 onCancel={() => setEditingId(null)}
-                feteerTypes={feteerTypes}
+                feteerTypeOptions={feteerTypeOptions}
+                sweetTypeOptions={sweetTypeOptions}
               />
             ) : (
               <div className="flex justify-between items-center">
@@ -980,8 +1058,15 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
                         <p className="text-gray-600 font-arabic">{item.name_arabic}</p>
                       )}
                       <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                        <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs">
-                          For: {item.feteer_type || 'All Types'}
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          item.item_type === 'sweet' 
+                            ? 'bg-pink-100 text-pink-800' 
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          For: {item.item_type === 'sweet' 
+                            ? (item.sweet_type || 'All Sweet Types')
+                            : (item.feteer_type || 'All Feteer Types')
+                          }
                         </span>
                       </div>
                     </div>
@@ -1022,16 +1107,25 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
           </div>
         )) : (
           <div className="text-center py-12 text-gray-600 border-2 border-dashed border-gray-200 rounded-lg">
-            <div className="text-6xl mb-4">🍯</div>
-            <h3 className="text-xl font-semibold mb-2">No Extra Toppings Yet</h3>
-            <p className="mb-2">Add your first extra topping to enhance your feteer offerings.</p>
-            <p className="font-arabic">أضف أول إضافة إضافية لتحسين عروض الفطير الخاصة بك</p>
+            <div className="text-6xl mb-4">{activeSubTab === 'feteer' ? '🥞' : '🍯'}</div>
+            <h3 className="text-xl font-semibold mb-2">
+              No {activeSubTab === 'feteer' ? 'Feteer' : 'Sweet'} Toppings Yet
+            </h3>
+            <p className="mb-2">
+              Add your first extra topping to enhance your {activeSubTab === 'feteer' ? 'feteer' : 'sweet'} offerings.
+            </p>
+            <p className="font-arabic">
+              {activeSubTab === 'feteer' 
+                ? 'أضف أول إضافة إضافية لتحسين عروض الفطير الخاصة بك'
+                : 'أضف أول إضافة إضافية لتحسين عروض الحلويات الخاصة بك'
+              }
+            </p>
             <button
               onClick={() => setShowAddForm(true)}
               className="mt-4 btn-primary px-6 py-3 rounded-lg"
             >
               <div className="text-center">
-                <div className="text-sm">Add First Topping</div>
+                <div className="text-sm">Add First {activeSubTab === 'feteer' ? 'Feteer' : 'Sweet'} Topping</div>
                 <div className="font-arabic text-xs">إضافة أول إضافة</div>
               </div>
             </button>
@@ -1042,11 +1136,12 @@ function ToppingsEditor({ items, onUpdate }: { items: ExtraTopping[], onUpdate: 
   );
 }
 
-function EditableToppingRow({ item, onSave, onCancel, feteerTypes }: {
+function EditableToppingRow({ item, onSave, onCancel, feteerTypeOptions, sweetTypeOptions }: {
   item: ExtraTopping,
   onSave: (item: ExtraTopping) => void,
   onCancel: () => void,
-  feteerTypes: string[]
+  feteerTypeOptions: string[],
+  sweetTypeOptions: string[]
 }) {
   const [editedItem, setEditedItem] = useState(item);
 
@@ -1072,16 +1167,29 @@ function EditableToppingRow({ item, onSave, onCancel, feteerTypes }: {
         onChange={(e) => setEditedItem(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
         className="form-input"
       />
-      <select
-        value={editedItem.feteer_type || ''}
-        onChange={(e) => setEditedItem(prev => ({ ...prev, feteer_type: e.target.value }))}
-        className="form-input"
-      >
-        <option value="">Select Type</option>
-        {feteerTypes.map(type => (
-          <option key={type} value={type}>{type}</option>
-        ))}
-      </select>
+      {editedItem.item_type === 'sweet' ? (
+        <select
+          value={editedItem.sweet_type || ''}
+          onChange={(e) => setEditedItem(prev => ({ ...prev, sweet_type: e.target.value }))}
+          className="form-input"
+        >
+          <option value="">Select Sweet Type</option>
+          {sweetTypeOptions.map(type => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+      ) : (
+        <select
+          value={editedItem.feteer_type || ''}
+          onChange={(e) => setEditedItem(prev => ({ ...prev, feteer_type: e.target.value }))}
+          className="form-input"
+        >
+          <option value="">Select Feteer Type</option>
+          {feteerTypeOptions.map(type => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+      )}
       <div className="flex gap-2">
         <button
           onClick={() => onSave(editedItem)}

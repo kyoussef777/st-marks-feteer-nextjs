@@ -29,12 +29,13 @@ interface OrderFormProps {
     extraToppings: ExtraTopping[];
   };
   onOrderCreated: (orderData: Record<string, unknown>) => Promise<{ id: number; [key: string]: unknown }>;
+  forcedItemType?: 'feteer' | 'sweet'; // Lock the form to a specific type
 }
 
-export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) {
+export default function OrderForm({ menuData, onOrderCreated, forcedItemType }: OrderFormProps) {
   const [formData, setFormData] = useState({
     customer_name: '',
-    item_type: 'feteer' as 'feteer' | 'sweet',
+    item_type: (forcedItemType || 'feteer') as 'feteer' | 'sweet',
     feteer_type: '',
     sweet_type: '',
     sweet_selections: {} as Record<string, number>, // sweet name -> quantity
@@ -97,6 +98,16 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
         const sweet = menuData.sweetTypes.find(s => s.item_name === sweetName);
         if (sweet && quantity > 0) {
           price += sweet.price * quantity;
+        }
+      });
+
+      // Add sweet toppings cost
+      formData.selected_toppings.forEach(toppingName => {
+        const topping = menuData.extraToppings.find(t => t.name === toppingName);
+        if (topping && topping.price) {
+          // For sweets, multiply topping price by total quantity of all sweets
+          const totalSweetQuantity = Object.values(formData.sweet_selections).reduce((sum, qty) => sum + qty, 0);
+          price += topping.price * Math.max(1, totalSweetQuantity); // At least 1 to avoid 0 cost
         }
       });
     }
@@ -248,7 +259,7 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
       // Reset form
       setFormData({
         customer_name: '',
-        item_type: 'feteer',
+        item_type: (forcedItemType || 'feteer'),
         feteer_type: '',
         sweet_type: '',
         sweet_selections: {},
@@ -437,40 +448,42 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
           </div>
         </div>
 
-        {/* Item Type Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Order Type / نوع الطلب
-          </label>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button
-              type="button"
-              onClick={() => handleItemTypeChange('feteer')}
-              className={`p-3 sm:p-4 border-2 rounded-lg text-center transition-all ${
-                formData.item_type === 'feteer'
-                  ? 'border-amber-500 bg-amber-50 text-amber-900'
-                  : 'border-gray-200 hover:border-amber-300 hover:bg-amber-25'
-              }`}
-            >
-              <div className="text-xl sm:text-2xl mb-1 sm:mb-2">🥞</div>
-              <div className="font-semibold text-sm sm:text-base">Feteer</div>
-              <div className="text-xs font-arabic text-gray-600">فطير</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleItemTypeChange('sweet')}
-              className={`p-3 sm:p-4 border-2 rounded-lg text-center transition-all ${
-                formData.item_type === 'sweet'
-                  ? 'border-amber-500 bg-amber-50 text-amber-900'
-                  : 'border-gray-200 hover:border-amber-300 hover:bg-amber-25'
-              }`}
-            >
-              <div className="text-xl sm:text-2xl mb-1 sm:mb-2">🍯</div>
-              <div className="font-semibold text-sm sm:text-base">Sweets</div>
-              <div className="text-xs font-arabic text-gray-600">حلويات</div>
-            </button>
+        {/* Item Type Selection - Hide when forced to specific type */}
+        {!forcedItemType && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Order Type / نوع الطلب
+            </label>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => handleItemTypeChange('feteer')}
+                className={`p-3 sm:p-4 border-2 rounded-lg text-center transition-all ${
+                  formData.item_type === 'feteer'
+                    ? 'border-amber-500 bg-amber-50 text-amber-900'
+                    : 'border-gray-200 hover:border-amber-300 hover:bg-amber-25'
+                }`}
+              >
+                <div className="text-xl sm:text-2xl mb-1 sm:mb-2">🥞</div>
+                <div className="font-semibold text-sm sm:text-base">Feteer</div>
+                <div className="text-xs font-arabic text-gray-600">فطير</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleItemTypeChange('sweet')}
+                className={`p-3 sm:p-4 border-2 rounded-lg text-center transition-all ${
+                  formData.item_type === 'sweet'
+                    ? 'border-amber-500 bg-amber-50 text-amber-900'
+                    : 'border-gray-200 hover:border-amber-300 hover:bg-amber-25'
+                }`}
+                >
+                <div className="text-xl sm:text-2xl mb-1 sm:mb-2">🍯</div>
+                <div className="font-semibold text-sm sm:text-base">Sweets</div>
+                <div className="text-xs font-arabic text-gray-600">حلويات</div>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Feteer Type Selection */}
         {formData.item_type === 'feteer' && (
@@ -559,8 +572,41 @@ export default function OrderForm({ menuData, onOrderCreated }: OrderFormProps) 
                     
                     {quantity > 0 && (
                       <div className="mt-2 pt-2 border-t border-orange-200">
-                        <div className="text-xs sm:text-sm font-bold text-orange-800">
-                          Subtotal: ${(sweet.price * quantity).toFixed(2)}
+                        <div className="flex flex-col space-y-2">
+                          <div className="text-xs sm:text-sm font-bold text-orange-800">
+                            Subtotal: ${(sweet.price * quantity).toFixed(2)}
+                          </div>
+                          
+                          {/* Sweet Toppings */}
+                          {menuData.extraToppings.filter(topping => 
+                            topping.item_type === 'sweet' && 
+                            (topping.sweet_type === sweet.item_name || topping.sweet_type === 'All Sweet Types')
+                          ).length > 0 && (
+                            <div>
+                              <div className="text-xs text-gray-600 mb-1">Add toppings:</div>
+                              <div className="flex flex-wrap gap-1">
+                                {menuData.extraToppings
+                                  .filter(topping => 
+                                    topping.item_type === 'sweet' && 
+                                    (topping.sweet_type === sweet.item_name || topping.sweet_type === 'All Sweet Types')
+                                  )
+                                  .map((topping) => (
+                                    <button
+                                      key={topping.id}
+                                      type="button"
+                                      onClick={() => handleToppingSelection(topping.name)}
+                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
+                                        formData.selected_toppings.includes(topping.name)
+                                          ? 'border-pink-500 bg-pink-100 text-pink-800'
+                                          : 'border-gray-300 bg-white text-gray-700 hover:border-pink-300 hover:bg-pink-50'
+                                      }`}
+                                    >
+                                      {topping.name} (+${topping.price.toFixed(2)})
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

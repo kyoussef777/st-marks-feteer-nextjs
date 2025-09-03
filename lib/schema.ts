@@ -49,6 +49,8 @@ export const extra_toppings = pgTable('extra_toppings', {
   name_arabic: text('name_arabic'),
   price: real('price').default(0),
   feteer_type: text('feteer_type'),
+  sweet_type: text('sweet_type'),
+  item_type: text('item_type'), // 'feteer' or 'sweet' to indicate which type this topping is for
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 

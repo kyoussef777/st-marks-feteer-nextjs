@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "./components/AuthProvider";
+import { LanguageProvider } from "./components/LanguageProvider";
 import { OrdersProvider } from "../lib/orders-context";
 import ConditionalNavbar from "./components/ConditionalNavbar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -32,18 +33,20 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
         <ErrorBoundary>
-          <AuthProvider>
-            <ErrorBoundary>
-              <OrdersProvider>
-                <ErrorBoundary>
-                  <ConditionalNavbar />
-                  <main className="min-h-screen">
-                    {children}
-                  </main>
-                </ErrorBoundary>
-              </OrdersProvider>
-            </ErrorBoundary>
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <ErrorBoundary>
+                <OrdersProvider>
+                  <ErrorBoundary>
+                    <ConditionalNavbar />
+                    <main className="min-h-screen">
+                      {children}
+                    </main>
+                  </ErrorBoundary>
+                </OrdersProvider>
+              </ErrorBoundary>
+            </AuthProvider>
+          </LanguageProvider>
         </ErrorBoundary>
       </body>
     </html>

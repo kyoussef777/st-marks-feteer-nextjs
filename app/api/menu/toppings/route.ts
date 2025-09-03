@@ -14,7 +14,7 @@ export const GET = withAuth(async () => {
 
 export const POST = withAuth(async (request: NextRequest) => {
   try {
-    const { name, name_arabic, price, feteer_type } = await request.json();
+    const { name, name_arabic, price, feteer_type, sweet_type, item_type } = await request.json();
     
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -24,7 +24,9 @@ export const POST = withAuth(async (request: NextRequest) => {
       name,
       name_arabic: name_arabic || null,
       price: typeof price === 'number' ? price : 0,
-      feteer_type: feteer_type || null
+      feteer_type: feteer_type || null,
+      sweet_type: sweet_type || null,
+      item_type: item_type || 'feteer'
     });
 
     return NextResponse.json({ success: true, id }, { status: 201 });

@@ -11,13 +11,15 @@ export const PUT = withAuth(async (request: NextRequest, { params }: { params: P
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    const { name, name_arabic, price, feteer_type } = await request.json();
+    const { name, name_arabic, price, feteer_type, sweet_type, item_type } = await request.json();
     
-    const updateData: Partial<{ name: string; name_arabic?: string; price?: number; feteer_type?: string }> = {};
+    const updateData: Partial<{ name: string; name_arabic?: string; price?: number; feteer_type?: string; sweet_type?: string; item_type?: string }> = {};
     if (name !== undefined) updateData.name = name;
     if (name_arabic !== undefined) updateData.name_arabic = name_arabic;
     if (price !== undefined) updateData.price = typeof price === 'number' ? price : 0;
     if (feteer_type !== undefined) updateData.feteer_type = feteer_type;
+    if (sweet_type !== undefined) updateData.sweet_type = sweet_type;
+    if (item_type !== undefined) updateData.item_type = item_type;
 
     await updateExtraTopping(id, updateData);
 
