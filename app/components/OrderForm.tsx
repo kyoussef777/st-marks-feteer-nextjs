@@ -53,6 +53,7 @@ export default function OrderForm({ menuData, onOrderCreated, forcedItemType }: 
   const [showOrderPopup, setShowOrderPopup] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [sweetSearch, setSweetSearch] = useState('');
   const [newOrderData, setNewOrderData] = useState<{
     id: number;
     customer_name: string;
@@ -165,6 +166,24 @@ export default function OrderForm({ menuData, onOrderCreated, forcedItemType }: 
     return Object.values(formData.sweet_selections).reduce((sum, qty) => sum + qty, 0);
   }, [formData.sweet_selections]);
 
+  // Filter and sort sweets alphabetically by English name, then by search term
+  const filteredAndSortedSweets = useMemo(() => {
+    let sweets = [...menuData.sweetTypes];
+    
+    // Filter by search term if provided
+    if (sweetSearch.trim()) {
+      const searchLower = sweetSearch.toLowerCase();
+      sweets = sweets.filter(sweet => 
+        sweet.item_name.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Sort alphabetically by English name
+    sweets.sort((a, b) => a.item_name.localeCompare(b.item_name));
+    
+    return sweets;
+  }, [menuData.sweetTypes, sweetSearch]);
+
   const handleMeatSelection = (meatName: string, isAdditional = false) => {
     const field = isAdditional ? 'additional_meat_selection' : 'meat_selection';
     const currentSelection = formData[field];
@@ -270,6 +289,7 @@ export default function OrderForm({ menuData, onOrderCreated, forcedItemType }: 
       selected_toppings: [],
         notes: ''
       });
+      setSweetSearch(''); // Reset search
       setShowMeatOptions(false);
       setShowExtraToppings(false);
     } catch (error) {
@@ -525,8 +545,25 @@ export default function OrderForm({ menuData, onOrderCreated, forcedItemType }: 
                 <span className="ml-2 text-orange-600 font-bold text-xs sm:text-sm">({totalSweetQuantity} items)</span>
               )}
             </label>
+            
+            {/* Search Bar */}
+            <div className="mb-4">
+              <input
+                type="text"
+                value={sweetSearch}
+                onChange={(e) => setSweetSearch(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                placeholder="Search sweets... / ابحث عن الحلويات..."
+              />
+              {sweetSearch && (
+                <div className="mt-1 text-xs text-gray-500">
+                  Showing {filteredAndSortedSweets.length} of {menuData.sweetTypes.length} sweets
+                </div>
+              )}
+            </div>
+            
             <div className="space-y-2 sm:space-y-3">
-              {menuData.sweetTypes.map((sweet) => {
+              {filteredAndSortedSweets.map((sweet) => {
                 const quantity = formData.sweet_selections[sweet.item_name] || 0;
                 return (
                   <div
